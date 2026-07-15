@@ -80,3 +80,5 @@ dc ps
 log "Done. Stack is up. HTTP: port ${HTTP_PORT:-80} (set HTTP_PORT in .env)."
 log "Ubuntu firewall (if ufw is on): sudo ufw allow ${HTTP_PORT:-80}/tcp && sudo ufw reload"
 log "Logs: docker compose logs -f backend   # or: docker compose logs -f web"
+
+# passowrd = 62107846

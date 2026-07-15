@@ -1,14 +1,16 @@
 from pathlib import Path
 
 import os
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 from urllib.parse import urlparse
 
-load_dotenv()
-
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Always load env from EDS_backend/.env (next to manage.py), not only cwd.
+load_dotenv(BASE_DIR / ".env")
+# Changing only `.env` does not reload env vars — restart the Django process after edits.
 
 SWAGGER_USE_COMPAT_RENDERERS = False
 # Quick-start development settings - unsuitable for production
@@ -16,16 +18,23 @@ SWAGGER_USE_COMPAT_RENDERERS = False
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Defaults to True to preserve prior local-dev behavior; set DEBUG=False in .env for production.
-DEBUG = os.environ.get('DEBUG', 'True').strip().lower() in ('1', 'true', 'yes', 'on')
+DEBUG = os.environ.get("DEBUG", "False").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-dev-only-change-me"
+    else:
+        raise ValueError(
+            "SECRET_KEY must be set in the environment when DEBUG is False."
+        )
+
+_raw_hosts = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,159.223.188.205")
+ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()]
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -132,35 +141,36 @@ SIMPLE_JWT = {
 # DATABASE_URL (if set) takes priority over the discrete DB_* vars, per DEPLOYEMNT.md.
 # Falls back to the previous hardcoded local-dev values when nothing is set, so
 # `python manage.py runserver` without a .env keeps working as before.
-DATABASE_URL = os.environ.get('DATABASE_URL')
-
-if DATABASE_URL:
-    tmpPostgres = urlparse(DATABASE_URL)
+_database_url = os.getenv("DATABASE_URL")
+if _database_url:
+    _pg = urlparse(_database_url)
+    _db_name = (_pg.path or "").lstrip("/") or os.getenv("DB_NAME", "postgres")
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': tmpPostgres.path.replace('/', ''),
-            'USER': tmpPostgres.username,
-            'PASSWORD': tmpPostgres.password,
-            'HOST': tmpPostgres.hostname,
-            'PORT': tmpPostgres.port or 5432,
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": _db_name,
+            "USER": _pg.username or os.getenv("DB_USER", "postgres"),
+            "PASSWORD": _pg.password or os.getenv("DB_PASSWORD", ""),
+            "HOST": _pg.hostname or os.getenv("DB_HOST", "localhost"),
+            "PORT": str(_pg.port or os.getenv("DB_PORT", "5432")),
         }
     }
 else:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DB_NAME', 'eds_db'),
-            'USER': os.environ.get('DB_USER', 'postgres'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'Post9pool%'),
-            'HOST': os.environ.get('DB_HOST', 'localhost'),
-            'PORT': os.environ.get('DB_PORT', '5433'),
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME", "eds2"),
+            "USER": os.getenv("DB_USER", "postgres"),
+            "PASSWORD": os.getenv("DB_PASSWORD", "marshal1111"),
+            "HOST": os.getenv("DB_HOST", "localhost"),
+            "PORT": os.getenv("DB_PORT", "5432"),
         }
     }
 
 CRONJOBS = [
     ('0 6 * * *', 'Expert_Registration.management.commands.backup_full.Command.handle'),
 ]
+
 
 
 
