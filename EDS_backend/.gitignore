@@ -1,0 +1,11 @@
+cvs/
+myenv/
+env/
+Expert_Registration/**/__pycache__/
+Expert_Registration/cvs/
+EDS_backend/__pycache__/
+.env
+db.sqlite3
+media/
+*.pyc
+__pycache__/

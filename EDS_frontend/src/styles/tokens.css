@@ -1,0 +1,131 @@
+/* ============================================================
+   tokens.css — single source of truth for brand design values
+   Imported globally via index.css — available to all CSS files
+   ============================================================ */
+
+:root {
+  /* ── AfriDATAi Brand Colors (exact brand guideline compliance) ── */
+  --color-primary:        #ae272d; /* AfriDATAi Red RGB(174, 39, 45) */
+  --color-primary-hover:  #8e2024; /* Darker red for interactions */
+  --color-primary-light:  rgba(174, 39, 45, 0.1);  /* 10% opacity red */
+  --color-primary-ultra-light: rgba(174, 39, 45, 0.05); /* 5% opacity red */
+  --color-primary-medium: rgba(174, 39, 45, 0.25); /* 25% opacity red */
+  --color-primary-border: rgba(174, 39, 45, 0.35); /* 35% opacity red */
+
+  /* ── Brand Neutral Colors (brand guideline compliant) ── */
+  --color-dark:      #1A1A1A; /* AfriDATAi Black RGB(26, 26, 26) - exact brand match */
+  --color-white:     #FFFFFF; /* AfriDATAi White RGB(255, 255, 255) */
+  
+  /* ── Extended Gray Scale (for UI components) ── */
+  --color-gray-900:  #0f0f0f; /* Ultra dark for deep contrast */
+  --color-gray-850:  #171717; /* Slightly lighter than brand black */
+  --color-gray-800:  #1f2937; /* Dark gray for cards in dark mode */
+  --color-gray-700:  #374151; /* Medium dark gray */
+  --color-gray-600:  #4b5563; /* Medium gray */
+  --color-gray-500:  #6b7280; /* Neutral gray */
+  --color-gray-400:  #9ca3af; /* Light gray */
+  --color-gray-300:  #d1d5db; /* Very light gray */
+  --color-gray-200:  #e5e7eb; /* Ultra light gray */
+  --color-gray-100:  #f3f4f6; /* Almost white gray */
+  --color-gray-50:   #f8fafc; /* Barely tinted white */
+
+  /* ── Brand Gradients (for visual appeal) ── */
+  --gradient-primary: linear-gradient(135deg, #ae272d 0%, #8e2024 100%);
+  --gradient-subtle: linear-gradient(135deg, rgba(174, 39, 45, 0.1) 0%, rgba(174, 39, 45, 0.05) 100%);
+  --gradient-dark: linear-gradient(135deg, #1A1A1A 0%, #0f0f0f 100%);
+
+  /* ── Typography (brand fonts) ── */
+  --font-primary: "Montserrat", "Inter", sans-serif; /* For headings, titles, CTAs */
+  --font-secondary: "Raleway", "Inter", sans-serif;  /* For body text, paragraphs */
+  --font-base: var(--font-secondary); /* Default font */
+
+  /* ── Spacing & Layout ── */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  20px;
+  --radius-3xl:  24px;
+  --radius-full: 999px;
+
+  /* ── Shadows (enhanced for dark mode compatibility) ── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --shadow-red: 0 8px 24px rgba(174, 39, 45, 0.15);
+  --shadow-red-lg: 0 12px 32px rgba(174, 39, 45, 0.2);
+
+  /* ── Sidebar (theme-aware) ── */
+  --sidebar-bg: var(--color-primary-hover); /* Dark red in light mode */
+
+  /* ── Theme System (Light Mode - Default) ── */
+  --theme-bg-primary: var(--color-white);
+  --theme-bg-secondary: var(--color-gray-50);
+  --theme-bg-tertiary: var(--color-gray-100);
+  --theme-text-primary: var(--color-dark);
+  --theme-text-secondary: var(--color-gray-600);
+  --theme-text-muted: var(--color-gray-400);
+  --theme-border-light: var(--color-gray-200);
+  --theme-border-medium: var(--color-gray-300);
+
+  /* ── Semantic State Colors (Light Mode) ── */
+  --theme-success: #15803d; /* green-700 */
+  --theme-error:   #dc2626; /* red-600 */
+  --theme-warning: #b45309; /* amber-700 */
+  --theme-info:    #1d4ed8; /* blue-700 */
+
+  /* ── Chart Tokens (Light Mode) ──
+     Consumed by the useChartColors() hook, NOT read by ApexCharts directly.
+     Series palette is the fixed AfriDATAi brand family — intentionally the
+     SAME in light and dark so brand charts look identical in both modes. */
+  --chart-axis:       #4b5563; /* axis + legend labels */
+  --chart-grid:       #e5e7eb; /* gridlines / borders */
+  --chart-label:      #1f2937; /* data labels on bars/slices */
+  --chart-title:      #1f2937; /* axis titles */
+  --chart-tooltip:    light;   /* ApexCharts tooltip.theme string */
+  --chart-series-1:   #ae272d;
+  --chart-series-2:   #A01F2F;
+  --chart-series-3:   #E05A5F;
+  --chart-series-4:   #8e2024;
+  --chart-series-5:   #F59E0B;
+  --chart-series-6:   #10B981;
+  --chart-series-7:   #3B82F6;
+  --chart-series-8:   #8B5CF6;
+}
+
+/* ── Dark Mode Theme (for extended usage & eye strain reduction) ── */
+[data-theme="dark"] {
+  --sidebar-bg: var(--color-dark); /* Black in dark mode */
+
+  --theme-bg-primary: var(--color-dark);     /* AfriDATAi Black background */
+  --theme-bg-secondary: var(--color-gray-850); /* Slightly lighter for cards */
+  --theme-bg-tertiary: var(--color-gray-800);  /* For elevated elements */
+  --theme-text-primary: var(--color-white);    /* White text on dark */
+  --theme-text-secondary: var(--color-gray-300); /* Light gray for secondary text */
+  --theme-text-muted: var(--color-gray-400);    /* Muted text */
+  --theme-border-light: var(--color-gray-700);  /* Dark borders */
+  --theme-border-medium: var(--color-gray-600); /* Medium dark borders */
+
+  /* ── Semantic State Colors (Dark Mode - brighter for contrast) ── */
+  --theme-success: #22c55e; /* green-500 */
+  --theme-error:   #f87171; /* red-400 */
+  --theme-warning: #fbbf24; /* amber-400 */
+  --theme-info:    #60a5fa; /* blue-400 */
+
+  /* ── Chart Tokens (Dark Mode) ──
+     Only the chrome (axis/grid/labels/tooltip) changes for legibility on a
+     dark canvas. Series colors stay the brand family from :root. */
+  --chart-axis:    #9ca3af;
+  --chart-grid:    #374151;
+  --chart-label:   #e5e7eb;
+  --chart-title:   #f3f4f6;
+  --chart-tooltip: dark;
+
+  /* Enhanced shadows for dark mode */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+

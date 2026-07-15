@@ -1,0 +1,168 @@
+@import './tokens.css';
+@import './dashboard.css';
+@import './antd-theme.css';
+
+@layer antd {
+  /* We will import Ant Design's CSS here later if needed */
+}
+@import "tailwindcss";
+
+/* ── Base Body & Document Styling ── */
+body {
+  font-family: var(--font-secondary); /* Raleway for body text */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ── Brand Typography System ── */
+/* Headings use Montserrat (primary brand font) */
+h1, h2, h3, h4, h5, h6,
+.heading,
+.title,
+.brand-text {
+  font-family: var(--font-primary); /* Montserrat */
+}
+
+/* Body text uses Raleway (secondary brand font) */
+p, span, div, li, td, th,
+.body-text,
+.description,
+.content {
+  font-family: var(--font-secondary); /* Raleway */
+}
+
+/* ── Link Styling ── */
+a {
+  @apply text-inherit;
+  transition: color 0.2s ease;
+}
+
+/* ── Theme Toggle Button Styling ── */
+.theme-toggle-btn {
+  background: var(--theme-bg-tertiary);
+  border: 1px solid var(--theme-border-light);
+  color: var(--theme-text-primary);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-primary);
+}
+
+.theme-toggle-btn:hover {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+}
+
+/* ── Sidebar Navigation Styling ── */
+.custom-sidebar nav a span,
+.custom-sidebar nav button span {
+  font-size: 16px !important;
+}
+.custom-popover .ant-popover-inner {
+  background-color: var(--color-primary) !important;
+  padding: 8px !important;
+}
+.custom-popover .ant-popover-arrow-content {
+  background-color: var(--color-primary) !important;
+}
+
+.custom-popover .ant-popover-inner-content ul {
+  background-color: transparent !important;
+}
+.ant-checkbox-inner {
+  border: 1px solid var(--theme-border-medium) !important;
+}
+.ant-checkbox-indeterminate .ant-checkbox-inner::after {
+  background-color: var(--color-primary) !important;
+}
+
+/* ── Form Input Styling ── */
+.ant-form-item-has-error .ant-select-selector,
+.ant-form-item-has-error .ant-input,
+.ant-form-item-has-error .ant-input:focus,
+.ant-form-item-has-error .ant-input-focused {
+  border-color: var(--color-primary) !important;
+}
+
+.ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background-color: var(--color-primary-light) !important;
+}
+
+.ant-form-item-has-error .ant-input:focus,
+.ant-form-item-has-error .ant-input-focused,
+.ant-form-item-has-error
+  .ant-select:not(.ant-select-disabled):not(.ant-select-customize-input)
+  .ant-select-selector {
+  box-shadow: 0 0 0 2px var(--color-primary-medium) !important;
+}
+
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper:hover,
+.ant-input-affix-wrapper-focused,
+.ant-input:focus,
+.ant-input:hover,
+.ant-input-focused,
+.ant-select:not(.ant-select-disabled):hover .ant-select-selector,
+.ant-select-focused:not(.ant-select-disabled) .ant-select-selector,
+.ant-picker:hover,
+.ant-picker-focused {
+  border-color: var(--color-primary) !important;
+}
+.ant-btn-primary {
+  background-color: var(--color-primary) !important ;
+}
+.ant-btn-primary:hover {
+  background-color: var(--color-primary) !important ;
+  border-color: var(--color-primary) !important;
+}
+.ant-steps-item-process > .ant-steps-item-container > .ant-steps-item-icon {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.ant-pagination-item-active {
+  border-color: var(--color-primary) !important;
+  background-color: transparent !important;
+}
+
+.ant-pagination-item-active a {
+  color: var(--color-primary) !important;
+}
+
+#password:focus,
+#password:hover {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.no-border-password .ant-input:hover,
+.no-border-password .ant-input:focus {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.ant-input-search-button {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.ant-input-search-button:hover {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+.ant-btn-default:not(:disabled):hover {
+  border-color: var(--theme-border-medium) !important; 
+  color: var(--theme-text-secondary) !important;      
+}
+
+.custom-sidebar nav::-webkit-scrollbar {
+  display: none;
+}

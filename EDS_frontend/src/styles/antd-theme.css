@@ -1,0 +1,251 @@
+/* ============================================================
+   antd-theme.css — all Ant Design dark-mode theming in ONE place
+
+   Ant's darkAlgorithm (set in App.jsx via ConfigProvider) provides the
+   baseline dark palette. The rules below pin Ant components to our own
+   --theme-* tokens and add the AfriDATAi brand-red accents, so Ant
+   tables / inputs / modals match the rest of the dashboard exactly.
+
+   Add any future `[data-theme="dark"] .ant-*` rule here — not in
+   dashboard.css — so component theming stays in one file.
+   ============================================================ */
+
+/* ── Tables ── */
+[data-theme="dark"] .ant-table {
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-table-thead > tr > th {
+  /* brand-red tinted header (kept from the original "enhanced" look) */
+  background: linear-gradient(135deg,
+    var(--theme-bg-tertiary) 0%,
+    var(--color-primary-ultra-light) 100%);
+  color: var(--theme-text-primary);
+  border-color: var(--color-primary-light);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .ant-table-tbody > tr > td {
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border-light);
+}
+
+[data-theme="dark"] .ant-table-tbody > tr:hover > td {
+  /* subtle red sweep on row hover */
+  background: linear-gradient(90deg,
+    var(--theme-bg-tertiary) 0%,
+    var(--color-primary-ultra-light) 50%,
+    var(--theme-bg-tertiary) 100%);
+}
+
+/* ── Pagination ── */
+[data-theme="dark"] .ant-pagination {
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-pagination .ant-pagination-item {
+  background-color: var(--theme-bg-primary);
+  border-color: var(--theme-border-medium);
+}
+
+[data-theme="dark"] .ant-pagination .ant-pagination-item a {
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-pagination .ant-pagination-item:hover {
+  background-color: var(--theme-bg-tertiary);
+  border-color: var(--color-primary);
+}
+
+[data-theme="dark"] .ant-pagination .ant-pagination-item-active {
+  background-color: transparent;
+  border-color: var(--color-primary);
+}
+
+[data-theme="dark"] .ant-pagination .ant-pagination-item-active a {
+  color: var(--color-primary);
+}
+
+/* ── Modal ── */
+[data-theme="dark"] .ant-modal .ant-modal-content {
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-modal .ant-modal-header {
+  background-color: var(--theme-bg-primary);
+  border-color: var(--theme-border-light);
+}
+
+[data-theme="dark"] .ant-modal .ant-modal-title {
+  color: var(--theme-text-primary);
+}
+
+/* ── Form / Input ── */
+[data-theme="dark"] .ant-form-item-label > label {
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-input {
+  background-color: var(--theme-bg-tertiary);
+  border-color: var(--theme-border-medium);
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-input:hover {
+  border-color: var(--color-primary);
+}
+
+[data-theme="dark"] .ant-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-medium);
+}
+
+/* ── Select ── */
+[data-theme="dark"] .ant-select .ant-select-selector {
+  background-color: var(--theme-bg-tertiary);
+  border-color: var(--theme-border-medium);
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-select .ant-select-selection-item {
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-select:hover .ant-select-selector {
+  border-color: var(--color-primary);
+}
+
+[data-theme="dark"] .ant-select-dropdown {
+  background-color: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border-light);
+}
+
+[data-theme="dark"] .ant-select-item {
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-select-item-option-selected {
+  background-color: var(--theme-bg-tertiary);
+}
+
+[data-theme="dark"] .ant-select-item:hover {
+  background-color: var(--theme-bg-tertiary);
+}
+
+/* ── Tag ── */
+[data-theme="dark"] .ant-tag {
+  background-color: var(--theme-bg-tertiary);
+  border-color: var(--theme-border-medium);
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-tag-green {
+  background-color: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: var(--theme-success);
+}
+
+/* ── Upload ── */
+[data-theme="dark"] .ant-upload {
+  background-color: var(--theme-bg-tertiary);
+  border-color: var(--theme-border-medium);
+}
+
+[data-theme="dark"] .ant-upload:hover {
+  border-color: var(--color-primary);
+}
+
+/* ── Tooltip / Popover ── */
+[data-theme="dark"] .ant-tooltip .ant-tooltip-inner {
+  background-color: var(--color-gray-800);
+  color: white;
+}
+
+[data-theme="dark"] .ant-popover .ant-popover-inner {
+  background-color: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border-light);
+}
+
+[data-theme="dark"] .ant-popover .ant-popover-inner-content {
+  color: var(--theme-text-primary);
+}
+
+/* ── Spin ── */
+[data-theme="dark"] .ant-spin-dot-item {
+  background-color: var(--color-primary);
+}
+
+/* ── Buttons ── */
+[data-theme="dark"] .ant-btn {
+  background-color: var(--theme-bg-tertiary);
+  border-color: var(--theme-border-medium);
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-btn:hover {
+  background-color: var(--theme-bg-secondary);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .ant-btn-primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+[data-theme="dark"] .ant-btn-primary:hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+[data-theme="dark"] .ant-btn-danger {
+  background-color: var(--theme-error);
+  border-color: var(--theme-error);
+  color: white;
+}
+
+[data-theme="dark"] .ant-btn-danger:hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+/* ── Steps ── */
+[data-theme="dark"] .ant-steps {
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-steps .ant-steps-item-title {
+  color: var(--theme-text-primary);
+}
+
+[data-theme="dark"] .ant-steps .ant-steps-item-description {
+  color: var(--theme-text-secondary);
+}
+
+[data-theme="dark"] .ant-steps .ant-steps-item-process .ant-steps-item-icon {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+[data-theme="dark"] .ant-steps .ant-steps-item-wait .ant-steps-item-icon {
+  background-color: var(--theme-bg-tertiary);
+  border-color: var(--theme-border-medium);
+}
+
+[data-theme="dark"] .ant-steps .ant-steps-item-finish .ant-steps-item-icon {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* ── Empty ── */
+[data-theme="dark"] .ant-empty {
+  color: var(--theme-text-muted);
+}
+
+[data-theme="dark"] .ant-empty-description {
+  color: var(--theme-text-muted);
+}

@@ -1,0 +1,16 @@
+.git
+.gitignore
+env/
+myenv/
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+backups/
+staticfiles/
+Expert_Registration/cvs/
+quickstart/
+*.docx
+.env
+README.md
