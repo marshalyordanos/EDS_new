@@ -277,12 +277,10 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('API_SECRET')
 }
 
-# Uploads go to Cloudinary only when it is switched on AND fully configured.
-# Local dev without credentials falls back to disk (see Expert_Registration.models.cv_storage).
-USE_CLOUDINARY = (
-    os.environ.get('USE_CLOUDINARY', 'True').lower() not in ('false', '0', 'no')
-    and all(CLOUDINARY_STORAGE.values())
-)
+# All file uploads (CVs, blog covers, testimonial photos) go to Cloudinary
+# only - see Expert_Registration.models.cv_storage and
+# Content.models.content_image_storage. There is no local-disk fallback,
+# so CLOUD_NAME / API_KEY / API_SECRET must always be set.
 
 # import cloudinary
 # cloudinary.config(

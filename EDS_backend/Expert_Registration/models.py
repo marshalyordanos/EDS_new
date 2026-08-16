@@ -12,7 +12,6 @@ from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
 from cloudinary_storage.storage import RawMediaCloudinaryStorage
 from django.conf import settings
-from django.core.files.storage import FileSystemStorage
 
 import uuid
 
@@ -20,14 +19,13 @@ import uuid
 def cv_storage():
     """Storage backend for CV uploads.
 
-    Cloudinary in production; local disk when USE_CLOUDINARY is off, so local
-    dev works without Cloudinary credentials. Referenced by name in migrations
-    (Django serializes the callable, not the instance), so switching backends
-    does not generate a new migration per developer.
+    Cloudinary only - CVs are never written to local disk, in any
+    environment. Kept as a function (rather than assigning the field
+    `storage=RawMediaCloudinaryStorage()` directly) because migrations
+    serialize this callable by import path, not the instance, so existing
+    migrations do not change.
     """
-    if getattr(settings, 'USE_CLOUDINARY', True):
-        return RawMediaCloudinaryStorage()
-    return FileSystemStorage()
+    return RawMediaCloudinaryStorage()
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):

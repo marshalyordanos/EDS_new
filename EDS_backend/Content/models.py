@@ -1,5 +1,3 @@
-from django.conf import settings
-from django.core.files.storage import FileSystemStorage
 from django.db import models
 from django.utils.text import slugify
 from cloudinary_storage.storage import MediaCloudinaryStorage
@@ -9,14 +7,11 @@ from Expert_Registration.models import User
 def content_image_storage():
     """Storage backend for blog covers and testimonial photos.
 
-    Cloudinary in production; local disk when USE_CLOUDINARY is off, so local
-    dev works without Cloudinary credentials. Mirrors
-    Expert_Registration.models.cv_storage - referenced by name here too, so
-    migrations serialize the callable rather than a storage instance.
+    Cloudinary only - never local disk. Mirrors
+    Expert_Registration.models.cv_storage; kept as a function because
+    migrations serialize this callable by import path, not the instance.
     """
-    if getattr(settings, 'USE_CLOUDINARY', True):
-        return MediaCloudinaryStorage()
-    return FileSystemStorage()
+    return MediaCloudinaryStorage()
 
 
 class BlogPost(models.Model):
