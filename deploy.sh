@@ -29,7 +29,21 @@ log() { printf '[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*"; }
 die() { log "ERROR: $*"; exit 1; }
 
 if [[ ! -f ".env" ]]; then
-  die "Missing .env — run: cp .env.example .env then set SECRET_KEY, DB_PASSWORD, DO_SPACES_* (if using Spaces), etc."
+  die "Missing .env — run: cp .env.example .env then set SECRET_KEY, DB_PASSWORD, CLOUD_NAME/API_KEY/API_SECRET (Cloudinary), etc."
+fi
+
+# Fail fast on required vars rather than deploying a stack that will 500 on
+# the first CV/image upload. There is no local-disk fallback for uploads —
+# Cloudinary credentials are mandatory, not optional.
+missing=()
+for var in SECRET_KEY DB_PASSWORD CLOUD_NAME API_KEY API_SECRET; do
+  # Read the value from .env without exporting the whole file (avoids
+  # clobbering the caller's shell env).
+  val="$(grep -E "^${var}=" .env | tail -n1 | cut -d'=' -f2-)"
+  [[ -z "${val}" ]] && missing+=("${var}")
+done
+if [[ ${#missing[@]} -gt 0 ]]; then
+  die "Missing/blank required vars in .env: ${missing[*]}. Uploads and auth will not work without these — see .env.example."
 fi
 
 command -v git >/dev/null 2>&1 || die "git not installed. Ubuntu: sudo apt update && sudo apt install -y git"

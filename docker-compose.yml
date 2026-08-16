@@ -35,8 +35,6 @@ services:
         condition: service_healthy
     expose:
       - "8000"
-    volumes:
-      - backend_media:/app/Expert_Registration/cvs
 
   web:
     build:
@@ -52,4 +50,3 @@ services:
 
 volumes:
   postgres_data:
-  backend_media:

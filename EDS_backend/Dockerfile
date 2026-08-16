@@ -15,7 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /app/staticfiles /app/Expert_Registration/cvs
+# CVs and content images go to Cloudinary only (see Expert_Registration.models.cv_storage,
+# Content.models.content_image_storage) — no local media directory is created.
+RUN mkdir -p /app/staticfiles
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

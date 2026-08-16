@@ -1,4 +1,9 @@
+# Env files hold real credentials (SECRET_KEY, DB_PASSWORD, Cloudinary keys,
+# email password) — never commit them. Only *.example files are tracked.
 .env
+.env.*
+!.env.example
+!*/.env.example
 *.pyc
 __pycache__/
 .venv/
