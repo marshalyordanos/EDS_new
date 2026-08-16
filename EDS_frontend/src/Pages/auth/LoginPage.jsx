@@ -1,60 +1,28 @@
 import { useState } from "react";
 import ForgotPasswordForm from "../../Components/auth/ForgotPasswordForm";
 import LoginForm from "../../Components/auth/LoginForm";
-import InfoSection from "../../Components/auth/InfoSection";
-import PublicLayout from "../../layouts/PublicLayout";
-import "../../styles/homepage.css";
+import Navbar from "../../Components/landing/Navbar";
+import Footer from "../../Components/landing/Footer";
+import { useTheme } from "../../context/ThemeContext";
+import fullLogoRed from "../../assets/full-logo-red.svg";
+import fullLogoWhite from "../../assets/full-logo-white.svg";
+import "../../styles/auth.css";
 
 const Login = ({ setRole2, setToken }) => {
   const [view, setView] = useState("login");
+  const { resolvedTheme } = useTheme();
+  const logoSrc = resolvedTheme === "dark" ? fullLogoWhite : fullLogoRed;
 
   return (
-    <PublicLayout bgColor="var(--theme-bg-secondary)">
-      <main
-        style={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "20px 24px",
-        }}
-      >
-        {/* Combined card */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "stretch",
-            width: "100%",
-            maxWidth: "920px",
-            borderRadius: "24px",
-            overflow: "hidden",
-            boxShadow: "var(--shadow-xl)",
-          }}
-        >
-          {/* Left — InfoSection panel */}
-          <InfoSection />
+    <div className="auth-screen">
+      <Navbar />
+      <main className="auth-main">
+        <div className="auth-card">
+          <div className="auth-mark">
+            <img src={logoSrc} alt="AfriDATAi" />
+          </div>
 
-          {/* Divider */}
-          <div
-            style={{
-              width: "1px",
-              background: "rgba(255,255,255,0.2)",
-              flexShrink: 0,
-            }}
-          />
-
-          {/* Right — form */}
-          <div
-            style={{
-              flex: 1,
-              backgroundColor: "var(--theme-bg-primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              // padding: "48px 40px",
-              transition: "background-color 0.3s ease",
-            }}
-          >
+          <div className="auth-panel">
             {view === "login" && (
               <LoginForm
                 setToken={setToken}
@@ -69,9 +37,15 @@ const Login = ({ setRole2, setToken }) => {
               />
             )}
           </div>
+
+          <p className="auth-footnote">
+            Need help? Contact{" "}
+            <a href="mailto:support@afridatai.com">support@afridatai.com</a>
+          </p>
         </div>
       </main>
-    </PublicLayout>
+      <Footer />
+    </div>
   );
 };
 

@@ -1008,7 +1008,7 @@ export default function AdminDashboard({ userId: propUserId }) {
                             }
                             size="sm"
                             onClick={() => setTimePeriod(period)}
-                            className={`w-18 capitalize bg-[var(--color-primary)]/90 hover:bg-[var(--color-primary)] shadow-sm ${
+                            className={`w-18 capitalize bg-[var(--color-primary)]/90 hover:bg-[var(--color-primary)] text-white shadow-sm ${
                               timePeriod === period
                                 ? "ring-2 ring-[var(--color-primary)]"
                                 : ""
@@ -1168,7 +1168,7 @@ export default function AdminDashboard({ userId: propUserId }) {
                       variant="ghost"
                       size="sm"
                       onClick={() => setIsFilterOpen(!isFilterOpen)}
-                      className="hover:bg-[var(--color-primary)] text-[var(--color-primary)] shadow-sm"
+                      className="hover:bg-[var(--color-primary)] hover:text-white text-[var(--color-primary)] shadow-sm"
                     >
                       <Filter className="w-5 h-5 mr-2" />
                       Filter

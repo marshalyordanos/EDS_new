@@ -9,8 +9,31 @@ from . models import ( User,
                     EducationalBackground,
                     WorkExperience,
                     Expertise,
-                    ResearchExperience
+                    ResearchExperience,
+                    AccessRequest
                     )
+from .completeness import evaluate as evaluate_completeness
+
+
+class CompletenessMixin(serializers.Serializer):
+    """Adds the read-only `cv_completeness` field.
+
+    Subclasses Serializer rather than being a plain mixin: DRF collects
+    declared fields via its serializer metaclass, so a field declared on a
+    bare object is invisible and the name falls through to model
+    introspection, which then fails on an attribute the model does not have.
+
+    Carries the full section breakdown even in list responses: the search
+    results let you click a score and see exactly what is missing, and that
+    drill-down has to be answerable without a second round trip per row.
+    Scoring is pure Python over prefetched relations — see
+    `completeness.completeness_queryset`, which every listing view applies.
+    """
+
+    cv_completeness = serializers.SerializerMethodField()
+
+    def get_cv_completeness(self, obj):
+        return evaluate_completeness(obj)
 
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -65,7 +88,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'first_name', 'last_name', 'email', 'password',
-            'role', 'company_name', 'created_at', 'updated_at'
+            'role', 'company_name', 'is_active', 'created_at', 'updated_at'
         ]
         extra_kwargs = {
             'email': {'required': True},
@@ -266,11 +289,11 @@ class CVBuilderSerializer(serializers.Serializer):
 
 
 
-class ExpertSerializer(serializers.ModelSerializer):
+class ExpertSerializer(CompletenessMixin, serializers.ModelSerializer):
     cv_file = serializers.FileField(
         required=False,
         validators=[
-            FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx']),
+            FileExtensionValidator(allowed_extensions=['pdf', 'docx']),
             validate_file_size
         ]
     )
@@ -292,19 +315,22 @@ class ExpertSerializer(serializers.ModelSerializer):
             'personal_detail',
             'expertises',
                         'yours',  # 👈 include it here
+            'cv_completeness',
 
-           
+
         ]
         extra_kwargs = {
             'registered_by': {'required': True, 'allow_null': False}
         }
 
     def update(self, instance, validated_data):
-        if 'cv_file' in validated_data:
-            if instance.cv_file:
-                instance.cv_file.delete()
-            instance.cv_file = validated_data['cv_file']
-        return super().update(instance, validated_data)
+        # Keep a handle on the old file and delete it only after the new one is
+        # stored - deleting first loses the CV outright if the upload fails.
+        old_cv = instance.cv_file if 'cv_file' in validated_data and instance.cv_file else None
+        updated = super().update(instance, validated_data)
+        if old_cv and old_cv.name != updated.cv_file.name:
+            old_cv.delete(save=False)
+        return updated
 
     def get_yours(self, obj):
         request = self.context.get("request")
@@ -313,39 +339,108 @@ class ExpertSerializer(serializers.ModelSerializer):
         return obj.registered_by_id == request.user.id
 
 class PublicExpertSerializer(serializers.ModelSerializer):
+    """Trimmed view for experts the viewer did NOT register.
+
+    Shows name, position, years of experience, field/expertise, and the
+    education / work / research history - the professional record. Excludes
+    contact details (email, phone), cv_file, resume_text, and cv_completeness
+    (a registering-company metric, not something other companies should see
+    on experts that are not theirs). Deliberately does NOT inherit
+    CompletenessMixin, so that field cannot reappear by a future field-list
+    edit alone. Full detail (contact info, CV, completeness) stays exclusive
+    to ExpertSerializer, reached only for an expert's own registering
+    company or an admin.
+    """
+
     work_experiences = WorkExperienceSerializer(source='workexperience_set', many=True, read_only=True)
     educational_backgrounds = EducationalBackgroundSerializer(source='educationalbackground_set', many=True, read_only=True)
     research_experiences = ResearchExperienceSerializer(source='researchexperience_set', many=True, read_only=True)
-    expertises = ExpertiseSerializer(source='expertise_set', many=True, read_only=True)
-
+    current_position = serializers.SerializerMethodField()
     yours = serializers.SerializerMethodField()
 
     class Meta:
         model = Expert
         fields = [
             'id',
-            'expertises',
+            'first_name',
+            'last_name',
+            'current_position',
+            'expertise_area',
+            'year_of_experience',
             'work_experiences',
             'educational_backgrounds',
             'research_experiences',
-            'expertise_area',
-            'year_of_experience',
-            'nationality',
-            'countries_of_work_experience',
             'yours',  # 👈 include here
-            'code'
-
         ]
     def get_yours(self, obj):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return False
-        return obj.registered_by_id == request.user.id    
+        return obj.registered_by_id == request.user.id
+
+    def get_current_position(self, obj):
+        personal = getattr(obj, "personaldetail", None)
+        return personal.current_position if personal else None
+
+
+class PurchasedExpertSerializer(PublicExpertSerializer):
+    """Same professional record as PublicExpertSerializer, plus the contact
+    info and CV a company unlocked by paying for an AccessRequest.
+
+    Deliberately does NOT add cv_completeness or the internal `code` - a
+    paid request buys the contact details and the CV, which is what was
+    requested and priced, not the full owner-equivalent record.
+    """
+
+    email = serializers.EmailField(read_only=True)
+    cv_file = serializers.FileField(read_only=True)
+    phone_number = serializers.SerializerMethodField()
+
+    class Meta(PublicExpertSerializer.Meta):
+        fields = PublicExpertSerializer.Meta.fields + ['email', 'phone_number', 'cv_file']
+
+    def get_phone_number(self, obj):
+        personal = getattr(obj, "personaldetail", None)
+        return personal.phone_number if personal else None
+
 
 class ExpertDynamicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Expert
         fields = "__all__"  # required but not used directly
+
+    def _paid_expert_ids(self, user):
+        """Expert ids this company user has paid to unlock.
+
+        Fetched once per request and memoised on the serializer context, which
+        is shared across every row in a list. Asking per expert instead turned
+        a listing into one extra query per result — invisible on a page of ten
+        and ruinous on the large page sizes this API allows.
+        """
+        cache_key = "_paid_expert_ids"
+        cached = self.context.get(cache_key)
+        if cached is not None:
+            return cached
+
+        user_id = getattr(user, "id", None)
+        paid = (
+            set(
+                AccessRequest.objects.filter(
+                    requested_by_id=user_id, status='paid'
+                ).values_list('expert_id', flat=True)
+            )
+            if user_id is not None
+            else set()
+        )
+        # `context` is a plain dict shared by every row of this response, so
+        # writing through it is what makes the memoisation effective. When a
+        # caller builds a serializer without context this degrades to one
+        # query per instance, which is the old behaviour, not a regression.
+        try:
+            self.context[cache_key] = paid
+        except TypeError:
+            pass
+        return paid
 
     def to_representation(self, instance):
         request = self.context.get("request")
@@ -356,11 +451,95 @@ class ExpertDynamicSerializer(serializers.ModelSerializer):
         if user_role == "admin":
             return ExpertSerializer(instance, context=self.context).data
 
-        # Company → full access only if they registered this expert, public for others
+        # Company → full access only if they registered this expert
         if user_role == "company":
             if instance.registered_by_id == getattr(user, "id", None):
                 return ExpertSerializer(instance, context=self.context).data
+
+            # Otherwise: contact info + CV only if they paid for access to
+            # THIS expert via an AccessRequest.
+            if instance.pk in self._paid_expert_ids(user):
+                return PurchasedExpertSerializer(instance, context=self.context).data
+
             return PublicExpertSerializer(instance, context=self.context).data
 
         # Other users → public only
         return PublicExpertSerializer(instance, context=self.context).data
+
+
+class AccessRequestSerializer(serializers.ModelSerializer):
+    """Request to unlock one expert's contact info + CV.
+
+    price / admin_note / status are read_only here - a company user must not
+    be able to set their own price or mark themselves approved. Admin-only
+    writes go through the dedicated `price`/`reject` actions on the viewset
+    instead of a generic update, so the allowed transitions stay explicit
+    rather than "whatever fields the request happened to include".
+    """
+
+    expert_name = serializers.SerializerMethodField()
+    requested_by_name = serializers.SerializerMethodField()
+    requested_by_company = serializers.CharField(source='requested_by.company_name', read_only=True)
+    requested_by_email = serializers.EmailField(source='requested_by.email', read_only=True)
+
+    class Meta:
+        model = AccessRequest
+        fields = [
+            'id', 'expert', 'expert_name',
+            'requested_by', 'requested_by_name', 'requested_by_company', 'requested_by_email',
+            'status', 'price', 'admin_note', 'reviewed_by',
+            'created_at', 'updated_at', 'paid_at',
+        ]
+        read_only_fields = [
+            'status', 'price', 'admin_note', 'reviewed_by',
+            'created_at', 'updated_at', 'paid_at', 'requested_by',
+        ]
+
+    def get_expert_name(self, obj):
+        return f"{obj.expert.first_name} {obj.expert.last_name}".strip()
+
+    def get_requested_by_name(self, obj):
+        name = f"{obj.requested_by.first_name} {obj.requested_by.last_name}".strip()
+        return name or obj.requested_by.email
+
+
+class LandingIndexTeaserSerializer(serializers.ModelSerializer):
+    """Anonymised teaser row for the PUBLIC landing page.
+
+    Deliberately minimal: no name, email, CV file, resume text, or nested
+    work/education history. Those fields either identify the expert outright
+    or (via employer + dates) allow re-identification, and this serializer is
+    reachable without authentication.
+
+    Only add a field here if it is safe for anyone on the internet to read.
+    """
+
+    sector = serializers.SerializerMethodField()
+    country = serializers.SerializerMethodField()
+    seniority = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Expert
+        fields = ["code", "sector", "country", "seniority"]
+
+    def get_sector(self, obj):
+        # expertise_area is free text; show only the leading clause so a
+        # long, uniquely-phrased specialism cannot single someone out.
+        area = (obj.expertise_area or "").strip()
+        if not area:
+            return "General practice"
+        head = area.replace(";", ",").split(",")[0].strip()
+        return (head[:60] or "General practice")
+
+    def get_country(self, obj):
+        return (obj.country or obj.nationality or "").strip() or "Unspecified"
+
+    def get_seniority(self, obj):
+        years = obj.year_of_experience
+        if not years:
+            return "Practitioner"
+        if years >= 15:
+            return "Principal"
+        if years >= 8:
+            return "Senior"
+        return "Practitioner"

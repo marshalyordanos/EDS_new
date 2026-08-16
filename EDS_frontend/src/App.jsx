@@ -10,21 +10,24 @@ import ExpertsThisWeekPage from "./Pages/dashboard/ExpertsThisWeekPage";
 import ExpertsThisMonthPage from "./Pages/dashboard/ExpertsThisMonth";
 import ExpertsWithOutdatedCVsPage from "./Pages/dashboard/ExpertsWithOutdatedCVs";
 import QuickUploadPage from "./Pages/dashboard/QuickUploadPage";
+import QuickUploadConsolePage from "./Pages/dashboard/QuickUploadConsolePage";
 import SuccessPage from "./Pages/auth/SuccessPage";
 import BuildCvPage from "./Pages/dashboard/BuildCvPage";
 import SuperAdminHomePage from "./Pages/dashboard/SuperAdminHomePage";
-import Analytics from "./Pages/dashboard/Analytics";
-import CompanyAnalytics from "./Pages/dashboard/CompanyAnalytics";
+import ConsoleHomePage from "./Pages/dashboard/ConsoleHomePage";
 import CompanyDashboard from "./Pages/dashboard/CompanyDashboard";
 import HomepageBeforeLogin from "./Pages/landing/HomepageBeforeLogin";
 import BlogPage from "./Pages/landing/BlogPage";
 import BlogPostPage from "./Pages/landing/BlogPostPage";
 import BlogManagementPage from "./Pages/dashboard/BlogManagementPage";
 import TestimonialsManagementPage from "./Pages/dashboard/TestimonialsManagementPage";
+import AccessRequestsPage from "./Pages/dashboard/AccessRequestsPage";
 import SearchPage from "./Pages/dashboard/SearchPage";
+import ExpertSearchPage from "./Pages/dashboard/ExpertSearchPage";
 import SearchResultsPage from "./Pages/dashboard/SearchResultPage";
 import EditExpertPage from "./Pages/dashboard/EditExpertPage";
 import CreateAdmin from "./Pages/dashboard/CreateAdmin";
+import UserManagementPage from "./Pages/dashboard/UserManagementPage";
 import AdminDashboard from "./Pages/dashboard/AdminDashboard";
 import ExpertProfilePage from "./Pages/dashboard/ExpertProfilePage";
 import ResetPasswordPage from "./Pages/auth/ResetPasswordPage";
@@ -114,7 +117,7 @@ function App() {
                 path="home"
                 element={
                   role === "admin" ? (
-                    <SuperAdminHomePage token={token} />
+                    <ConsoleHomePage />
                   ) : (
                     <Navigate to="/dashboard/company" replace />
                   )
@@ -126,10 +129,24 @@ function App() {
               <Route path="CreateAdmin" element={
                 role === "admin" ? <CreateAdmin /> : <Navigate to="/dashboard/company" replace />
               } />
-              <Route path="analytics" element={
-                role === "admin" ? <Analytics /> : <Navigate to="/dashboard/company" replace />
+              <Route path="users" element={
+                role === "admin" ? <UserManagementPage /> : <Navigate to="/dashboard/company" replace />
               } />
-              <Route path="my-analytics" element={<CompanyAnalytics />} />
+              {/* Analytics now live on the dashboard home pages. Old links and
+                  bookmarks redirect to the home page for the user's role. */}
+              <Route
+                path="analytics"
+                element={
+                  <Navigate
+                    to={role === "admin" ? "/dashboard/home" : "/dashboard/company"}
+                    replace
+                  />
+                }
+              />
+              <Route
+                path="my-analytics"
+                element={<Navigate to="/dashboard/company" replace />}
+              />
 
               {/* <Route path="home" element={<SuperAdminHomePage />} /> */}
 
@@ -147,8 +164,10 @@ function App() {
               />
               <Route
                 path="register/quick-upload"
-                element={<QuickUploadPage />}
+                element={<QuickUploadConsolePage />}
               />
+              {/* Legacy type-then-upload flow, kept reachable. */}
+              <Route path="register/quick-upload/classic" element={<QuickUploadPage />} />
               <Route path="register/build-cv" element={<BuildCvPage />} />
 
               {/* Content management — admin and content_manager */}
@@ -168,8 +187,19 @@ function App() {
                     : <Navigate to={getDashboardHome(role)} replace />
                 }
               />
+              <Route
+                path="access-requests"
+                element={
+                  role === "admin"
+                    ? <AccessRequestsPage />
+                    : <Navigate to={getDashboardHome(role)} replace />
+                }
+              />
 
-              <Route path="search" element={<SearchPage />} />
+              <Route path="search" element={<ExpertSearchPage />} />
+              {/* Legacy split search kept reachable; the workspace at
+                  /dashboard/search supersedes both. */}
+              <Route path="search/advanced" element={<SearchPage />} />
               <Route path="search/results" element={<SearchResultsPage />} />
               <Route path="experts/:expertId" element={<ExpertProfilePage />} />
               <Route

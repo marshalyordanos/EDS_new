@@ -157,11 +157,55 @@ def normalize_level(level_raw):
         return "degree"
     return "degree" # Default for unparsed levels
 
-def extract_personal_info(full_text, doc):
+def guess_name_from_text(full_text):
     """
-    Extracts personal and contact information, prioritizing table searches
-    for "Position Title", "Name", "Date of Birth", "Country of Citizenship/Residence".
-    Falls back to regex on full text for contact info if not found in tables.
+    Best-effort name guess for documents with no table structure (PDF, or a
+    DOCX that doesn't use the "Name of Expert" table row). Looks at the first
+    few non-empty lines for one that reads as a plain personal name: 2-4
+    capitalized words, no digits, no email/phone punctuation.
+
+    Deliberately conservative — a wrong guess here means a wrong name on the
+    record, so a line is skipped rather than force-fit whenever it looks even
+    slightly like a heading, label, or contact line.
+    """
+    # Allows an optional trailing "(PhD)"-style suffix in parentheses.
+    name_line_re = re.compile(
+        r"^[A-Z][a-zA-Z.'-]*(?:\s+[A-Z][a-zA-Z.'-]*){1,3}(?:\s*\([^)]+\))?$"
+    )
+    skip_words = {"curriculum", "vitae", "resume", "cv", "profile", "personal", "information"}
+
+    for line in full_text.splitlines()[:8]:
+        candidate = line.strip()
+        if not candidate or len(candidate) > 60:
+            continue
+        if "@" in candidate or any(ch.isdigit() for ch in candidate):
+            continue
+        if not name_line_re.match(candidate):
+            continue
+        if any(word in candidate.lower() for word in skip_words):
+            continue
+
+        suffix_match = re.search(r"\((.*?)\)", candidate)
+        suffix = suffix_match.group(1).strip() if suffix_match else None
+        raw_name = re.sub(r"\(.*?\)", "", candidate).replace("Dr.", "").strip()
+        parts = raw_name.split()
+        if len(parts) >= 2:
+            return parts[0], " ".join(parts[1:]), suffix
+        return None, None, None
+
+    return None, None, None
+
+
+def extract_personal_info(full_text, doc=None):
+    """
+    Extracts personal and contact information.
+
+    When `doc` (a python-docx Document) is given, table rows are checked
+    first for "Position Title", "Name of Expert", "Date of Birth", and
+    "Country of Citizenship/Residence" — the layout this parser was built
+    against. Without a `doc` (PDF input, which carries no table structure),
+    every field is instead read from `full_text`: name via a first-lines
+    heuristic, email/phone/position via regex.
     """
     personal_data = {
         "first_name": None,
@@ -186,52 +230,70 @@ def extract_personal_info(full_text, doc):
 
     # --- Step 1: Prioritize extraction from tables for initial personal details ---
     # Iterate through all tables to find the personal details table
-    for table in doc.tables:
-        for row in table.rows:
-            cells = [c.text.strip() for c in row.cells]
-          
-            # Heuristic to identify the initial personal details table (2 columns, specific keywords)
-            if len(cells) == 2:
-                key_cell = cells[0].strip().lower()
-                value_cell = cells[1].strip()
+    if doc is not None:
+        for table in doc.tables:
+            for row in table.rows:
+                cells = [c.text.strip() for c in row.cells]
 
-                if "position title" in key_cell and not found_in_table["position"]:
-                    personal_data["current_position"] = value_cell
-                    found_in_table["position"] = True
-                elif "name of expert" in key_cell and not found_in_table["name"]:
-                        # Extract suffix inside parentheses (e.g., PhD, MSc)
-                    suffix_match = re.search(r"\((.*?)\)", value_cell)
-                    suffix = suffix_match.group(1).strip() if suffix_match else None
-                    raw_name = re.sub(r"\(.*?\)", "", value_cell).replace("Dr.", "").strip()
-                    parts = raw_name.split()
-              
-                    if len(parts) >= 2:
+                # Heuristic to identify the initial personal details table (2 columns, specific keywords)
+                if len(cells) == 2:
+                    key_cell = cells[0].strip().lower()
+                    value_cell = cells[1].strip()
 
-                        personal_data["first_name"] = parts[0]
-                        personal_data["last_name"] = " ".join(parts[1:])
-                        personal_data['name_suffix']=suffix
+                    if "position title" in key_cell and not found_in_table["position"]:
+                        personal_data["current_position"] = value_cell
+                        found_in_table["position"] = True
+                    elif "name of expert" in key_cell and not found_in_table["name"]:
+                            # Extract suffix inside parentheses (e.g., PhD, MSc)
+                        suffix_match = re.search(r"\((.*?)\)", value_cell)
+                        suffix = suffix_match.group(1).strip() if suffix_match else None
+                        raw_name = re.sub(r"\(.*?\)", "", value_cell).replace("Dr.", "").strip()
+                        parts = raw_name.split()
 
-                    elif parts:
-                        personal_data["first_name"] = parts[0]
-                    found_in_table["name"] = True
-                elif "date of birth" in key_cell and not found_in_table["dob"]:
-                    
-                    personal_data["date_of_birth"] = safe_date_parse(value_cell.replace(',', ''))
-                    found_in_table["dob"] = True
-                elif "country of citizenship/residence" in key_cell and not found_in_table["country"]:
-                    personal_data["country"] = value_cell
-                    found_in_table["country"] = True
-            
-            # If all key fields are found, no need to process further tables for these
+                        if len(parts) >= 2:
+
+                            personal_data["first_name"] = parts[0]
+                            personal_data["last_name"] = " ".join(parts[1:])
+                            personal_data['name_suffix']=suffix
+
+                        elif parts:
+                            personal_data["first_name"] = parts[0]
+                        found_in_table["name"] = True
+                    elif "date of birth" in key_cell and not found_in_table["dob"]:
+
+                        personal_data["date_of_birth"] = safe_date_parse(value_cell.replace(',', ''))
+                        found_in_table["dob"] = True
+                    elif "country of citizenship/residence" in key_cell and not found_in_table["country"]:
+                        personal_data["country"] = value_cell
+                        found_in_table["country"] = True
+
+                # If all key fields are found, no need to process further tables for these
+                if all(found_in_table.values()):
+                    break
             if all(found_in_table.values()):
                 break
-        if all(found_in_table.values()):
-            break
 
-    # --- Step 2: Extract Email and Phone, typically found in plain text at the end ---
+    # --- Step 2: Plain-text fallback for whatever a table didn't supply ---
+    # Runs unconditionally for PDF (no doc, no tables at all) and fills any
+    # gap left by an unusually-formatted DOCX.
+    if not found_in_table["name"]:
+        first, last, suffix = guess_name_from_text(full_text)
+        if first:
+            personal_data["first_name"] = first
+            personal_data["last_name"] = last
+            personal_data["name_suffix"] = suffix
+
+    if not found_in_table["position"]:
+        position_match = re.search(
+            r"(?:Position\s*Title|Current\s*Position)[:：]?\s*(.+)", full_text, re.IGNORECASE
+        )
+        if position_match:
+            personal_data["current_position"] = position_match.group(1).strip()
+
+    # --- Step 3: Extract Email and Phone, typically found in plain text at the end ---
     # These are explicitly mentioned as "just text format" at the end of the document
     # (after "Expert's contact information")
-    
+
     # Try to find email from the full text
     email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+", full_text)
     if email_match:
@@ -360,15 +422,36 @@ def parse_publications(full_text):
     return publications_data
 
 
-def parse_full_cv(docx_path):
+def parse_full_cv(docx_path=None, raw_text=None):
     """
-    Parses a CV document (.docx) to extract structured information into a dictionary
-    conforming to the provided Django model structure.
+    Parses a CV into a dictionary conforming to the Django model structure.
+
+    Two mutually exclusive input modes:
+      - `docx_path`: a .docx file. Tables are read for education, employment,
+        certifications, research experience, and language skills, exactly as
+        this parser has always worked.
+      - `raw_text`: already-extracted plain text (e.g. from a PDF via
+        PyPDF2). There is no table structure to read, so only the sections
+        this parser can derive from text alone come back populated:
+        personal info, publications/journals/books/learning-module, and
+        countries of work experience. Education, employment, certifications,
+        research experience and language skills stay empty for the operator
+        to fill in by hand — the source document simply doesn't expose them
+        as parseable text the way a Word table does.
+
+    Exactly one of the two must be given.
     """
-    doc = Document(docx_path)
-    # Read paragraphs and join them, ensuring stripped content and clean newlines
-    full_text = "\n".join([p.text.strip() for p in doc.paragraphs if p.text.strip()])
-    # print(full_text)
+    if (docx_path is None) == (raw_text is None):
+        raise ValueError("parse_full_cv needs exactly one of docx_path or raw_text.")
+
+    doc = None
+    if docx_path is not None:
+        doc = Document(docx_path)
+        # Read paragraphs and join them, ensuring stripped content and clean newlines
+        full_text = "\n".join([p.text.strip() for p in doc.paragraphs if p.text.strip()])
+    else:
+        full_text = raw_text
+
     # Replace multiple newlines with single double newline for consistent sectioning
     full_text = re.sub(r'\n\s*\n+', '\n\n', full_text).strip()
 
@@ -425,10 +508,17 @@ def parse_full_cv(docx_path):
 
     })
 
-   # Step 1: Match the section with the countries
+   # Step 1: Match the section with the countries. Stops at the first line
+    # break — each paragraph in `full_text` is joined with a single \n (a
+    # blank separator paragraph is often collapsed away entirely by the
+    # p.text.strip() filter above it, so a document rarely has two), and a
+    # country list is written on one line in every CV this parser has seen.
+    # The old open-ended match could otherwise run past the list entirely and
+    # swallow the next line's heading too (e.g. "...Uganda\nContact:" reading
+    # "Contact" as a country).
     countries_work_exp_match = re.search(
-        r"Countries of Work Experience:?\s*([A-Za-z,\s;-]+)",  # Keep it open-ended
-        full_text, re.IGNORECASE | re.DOTALL
+        r"Countries of Work Experience:?[ \t]*([A-Za-z,;\s-]+?)(?=\n|\Z)",
+        full_text, re.IGNORECASE
     )
 
     if countries_work_exp_match:
@@ -454,7 +544,13 @@ def parse_full_cv(docx_path):
     # Note: We've already processed the first table (personal details) implicitly
     # in extract_personal_info, but iterating through all tables here is fine
     # as long as the header checks are distinct.
-    for table_idx, table in enumerate(doc.tables):
+    #
+    # No `doc` means no table structure at all (PDF input) — education, work
+    # experience, certifications, research experience, and language skills
+    # all come from tables this parser recognises by header text, so they
+    # simply stay empty for the operator to fill in rather than being
+    # guessed at from flat text.
+    for table_idx, table in enumerate(doc.tables if doc is not None else []):
         # Assuming tables that have headers relevant to these sections are not the initial personal info table
         # Check if the table has at least one row for headers
         if len(table.rows) == 0:

@@ -1,58 +1,38 @@
-import React from "react";
-// import "./CreativeCTABanner.css";
+import { Link } from "react-router-dom";
+import Reveal from "./Reveal";
 
-const CTASection = () => {
-  return (
-    <section className="creative-banner-section">
-      <div className="creative-banner-card">
-        <div className="banner-inner-content">
-          <span className="banner-tagline">Start Today</span>
+const CTASection = () => (
+  <section className="ld-cta" id="request-access">
+    <div className="ld-wrap">
+      <Reveal className="ld-cta-card">
+        <p className="ld-cta-eyebrow">Start today</p>
+        <h2 className="ld-cta-title">
+          Ready to find the right experts? <em>Let&apos;s build your team.</em>
+        </h2>
+        <p className="ld-cta-text">
+          AfriDATAi streamlines the discovery and engagement of verified
+          professionals across multiple countries and sectors. Connect with
+          world-class expertise instantly.
+        </p>
 
-          <h2 className="banner-heading">
-            Ready to find the right experts? <br />
-            <span className="heading-highlight">
-              Let's build your team today.
-            </span>
-          </h2>
-
-          <p className="banner-text">
-            AfriDATAi streamlines the discovery and engagement of verified
-            professionals across multiple countries and sectors. Connect with
-            world-class expertise instantly.
-          </p>
-
-          <div className="banner-actions">
-            <button className="action-btn btn-crimson">
-              <svg
-                className="btn-svg-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              </svg>
-              Request access
-            </button>
-
-            <button className="action-btn btn-dark">
-              <svg
-                className="btn-svg-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                <polyline points="22,6 12,13 2,6" />
-              </svg>
-              Email us directly
-            </button>
-          </div>
+        <div className="ld-cta-actions">
+          <Link to="/login" className="ld-btn ld-btn-paper">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+            Request access
+          </Link>
+          <a href="#contact" className="ld-btn ld-btn-outline-light">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M22 6l-10 7L2 6" />
+            </svg>
+            Email us directly
+          </a>
         </div>
-      </div>
-    </section>
-  );
-};
+      </Reveal>
+    </div>
+  </section>
+);
 
 export default CTASection;

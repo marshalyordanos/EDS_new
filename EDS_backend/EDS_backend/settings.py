@@ -184,7 +184,10 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend'
         ],
-    
+    # The frontend sends the free-text query as ?q=... everywhere (see
+    # ExpertSearchPage), not DRF SearchFilter's default ?search=...
+    'SEARCH_PARAM': 'q',
+
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
     
@@ -193,8 +196,11 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'user': '1000/hour',
-        'anon': '100/hour',
+        'user': '500/min',
+        'anon': '500/hour',
+        # Public landing index: unauthenticated, so keep it on its own budget
+        # rather than letting it consume the shared anon allowance.
+        'landing_index': '60/hour',
     }
 }
 
@@ -270,6 +276,13 @@ CLOUDINARY_STORAGE = {
     'API_KEY': os.environ.get('API_KEY'),
     'API_SECRET': os.environ.get('API_SECRET')
 }
+
+# Uploads go to Cloudinary only when it is switched on AND fully configured.
+# Local dev without credentials falls back to disk (see Expert_Registration.models.cv_storage).
+USE_CLOUDINARY = (
+    os.environ.get('USE_CLOUDINARY', 'True').lower() not in ('false', '0', 'no')
+    and all(CLOUDINARY_STORAGE.values())
+)
 
 # import cloudinary
 # cloudinary.config(

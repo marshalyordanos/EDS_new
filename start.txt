@@ -1,0 +1,16 @@
+To run it
+Backend (Terminal 1):
+
+
+cd /Users/mac/Desktop/Projects/Afridata/eds/EDS_backend
+source .venv/bin/activate
+python manage.py runserver
+Runs at http://localhost:8000.
+
+Frontend (Terminal 2):
+
+
+cd /Users/mac/Desktop/Projects/Afridata/eds/EDS_frontend
+npm run dev
+Runs at http://localhost:5173 and will call the backend at localhost:8000 automatically.
+

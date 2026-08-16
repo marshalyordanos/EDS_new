@@ -1,0 +1,1473 @@
+/* ============================================================
+   landing.css — "The Index" landing page
+   ------------------------------------------------------------
+   Scoped design system for the PUBLIC landing page only.
+
+   All tokens are namespaced --ld-* and declared on .ld-root, so
+   nothing here can leak into the dashboard or auth pages, which
+   keep the shared tokens from tokens.css.
+
+   Brand red is inherited from --color-primary; only the neutrals
+   and the display face are new.
+   ============================================================ */
+
+.ld-root {
+  /* ── ground + ink (warm neutrals, biased toward the brand red) ── */
+  --ld-paper: #faf7f5;
+  --ld-paper-2: #f3ede9;
+  --ld-ink: #191311;
+  --ld-ink-2: #4a3e3a;
+  --ld-ink-3: #8a7b75;
+  --ld-rule: #ded2cb;
+  --ld-rule-strong: #c6b6ad;
+
+  /* ── brand (red comes from the global brand token) ── */
+  --ld-red: var(--color-primary);
+  --ld-red-deep: var(--color-primary-hover);
+  --ld-red-wash: rgba(174, 39, 45, 0.07);
+  --ld-red-edge: rgba(174, 39, 45, 0.28);
+  --ld-amber: #d98c1f;
+
+  --ld-card: #ffffff;
+  --ld-card-edge: #e5d9d2;
+  --ld-shadow: 0 1px 2px rgba(25, 19, 17, 0.05),
+    0 8px 28px -12px rgba(25, 19, 17, 0.14);
+
+  /* ── type ── */
+  --ld-display: "Hoefler Text", "Iowan Old Style", "Palatino Linotype",
+    Palatino, Georgia, serif;
+  --ld-body: var(--font-secondary, "Raleway", system-ui, sans-serif);
+  --ld-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* ── layout ── */
+  --ld-gutter: clamp(20px, 5vw, 76px);
+  --ld-maxw: 1240px;
+
+  /* !important beats PublicLayout's inline backgroundColor, which is set for
+     the other public pages that still use the shared theme tokens. */
+  background-color: var(--ld-paper) !important;
+  color: var(--ld-ink);
+  font-family: var(--ld-body);
+}
+
+/* Dark mode follows the app's existing [data-theme] contract from
+   ThemeContext, so the landing page switches with the rest of the app. */
+[data-theme="dark"] .ld-root {
+  --ld-paper: #14100f;
+  --ld-paper-2: #1c1715;
+  --ld-ink: #f6f0ed;
+  --ld-ink-2: #c3b5af;
+  --ld-ink-3: #8d7d77;
+  --ld-rule: #332925;
+  --ld-rule-strong: #4a3b35;
+
+  --ld-red: #e4595e;
+  --ld-red-deep: #c43a40;
+  --ld-red-wash: rgba(228, 89, 94, 0.1);
+  --ld-red-edge: rgba(228, 89, 94, 0.3);
+  --ld-amber: #e8a33f;
+
+  --ld-card: #1b1614;
+  --ld-card-edge: #2e2521;
+  --ld-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -14px rgba(0, 0, 0, 0.8);
+}
+
+/* ── shared shell ─────────────────────────────────────────── */
+.ld-wrap {
+  max-width: var(--ld-maxw);
+  margin-inline: auto;
+  padding-inline: var(--ld-gutter);
+}
+
+.ld-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--ld-mono);
+  font-size: 0.69rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ld-red);
+}
+.ld-eyebrow::before {
+  content: "";
+  flex: none;
+  width: 22px;
+  height: 1px;
+  background: var(--ld-red);
+}
+
+.ld-title {
+  margin: 18px 0 0;
+  font-family: var(--ld-display);
+  font-weight: 600;
+  font-size: clamp(1.9rem, 4vw, 3.05rem);
+  line-height: 1.06;
+  letter-spacing: -0.018em;
+}
+
+.ld-lede {
+  margin: 16px 0 0;
+  max-width: 54ch;
+  color: var(--ld-ink-2);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+/* ── entrance motion ──────────────────────────────────────── */
+.ld-rise {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.85s cubic-bezier(0.2, 0.7, 0.25, 1),
+    transform 0.85s cubic-bezier(0.2, 0.7, 0.25, 1);
+  transition-delay: var(--ld-delay, 0ms);
+}
+.ld-rise.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── buttons ──────────────────────────────────────────────── */
+.ld-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 19px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-family: var(--ld-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.25s;
+}
+.ld-btn svg {
+  flex: none;
+}
+.ld-btn-red {
+  background: var(--ld-red);
+  color: #fff;
+  box-shadow: 0 6px 18px -8px rgba(174, 39, 45, 0.7);
+}
+.ld-btn-red:hover {
+  background: var(--ld-red-deep);
+  transform: translateY(-2px);
+}
+.ld-btn-ghost {
+  background: transparent;
+  color: var(--ld-ink);
+  border-color: var(--ld-rule-strong);
+}
+.ld-btn-ghost:hover {
+  border-color: var(--ld-ink);
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   MASTHEAD
+   ------------------------------------------------------------
+   Sticky and transparent over the hero; the hairline rule fades
+   in on scroll so the header joins the page's ruled system.
+   ============================================================ */
+.ld-masthead {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: color-mix(in srgb, var(--ld-paper) 86%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid transparent;
+  transition:
+    border-color 0.3s,
+    background 0.3s;
+}
+/* Fallback for browsers without color-mix: a solid ground, never transparent. */
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+  .ld-masthead {
+    background: var(--ld-paper);
+  }
+}
+.ld-masthead.is-stuck {
+  border-bottom-color: var(--ld-rule);
+}
+
+.ld-masthead-inner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  max-width: var(--ld-maxw);
+  margin-inline: auto;
+  padding: 14px var(--ld-gutter);
+}
+
+.ld-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  flex: none;
+}
+.ld-wordmark-logo {
+  height: 34px;
+  width: auto;
+  display: block;
+}
+.ld-wordmark-tag {
+  padding-left: 10px;
+  border-left: 1px solid var(--ld-rule);
+  font-family: var(--ld-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ld-ink-3);
+  white-space: nowrap;
+}
+
+.ld-masthead-nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  margin-left: auto;
+}
+.ld-masthead-link {
+  position: relative;
+  padding-block: 3px;
+  font-size: 0.87rem;
+  color: var(--ld-ink-2);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.ld-masthead-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--ld-red);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.32s cubic-bezier(0.2, 0.7, 0.25, 1);
+}
+.ld-masthead-link:hover {
+  color: var(--ld-ink);
+}
+.ld-masthead-link:hover::after {
+  transform: scaleX(1);
+}
+
+.ld-masthead-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+.ld-masthead-cta {
+  padding: 9px 16px;
+  font-size: 0.83rem;
+}
+
+/* Re-skin the shared ThemeToggle to the landing system, scoped so the
+   dashboard's own styling of this button is untouched. */
+.ld-root .theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--ld-rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ld-ink-2);
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    background 0.2s;
+}
+.ld-root .theme-toggle-btn:hover {
+  color: var(--ld-red);
+  border-color: var(--ld-red-edge);
+  background: var(--ld-red-wash);
+}
+
+@media (max-width: 1040px) {
+  .ld-masthead-nav {
+    display: none;
+  }
+  .ld-masthead-inner {
+    justify-content: space-between;
+  }
+  .ld-masthead-actions {
+    margin-left: auto;
+  }
+}
+@media (max-width: 560px) {
+  .ld-wordmark-tag {
+    display: none;
+  }
+  .ld-root .theme-toggle-btn span {
+    display: none;
+  }
+  .ld-root .theme-toggle-btn svg {
+    margin-right: 0 !important;
+  }
+}
+
+/* Anchored sections must clear the sticky masthead when jumped to. */
+.ld-root [id] {
+  scroll-margin-top: 84px;
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.ld-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(48px, 8vw, 104px) 0 0;
+}
+.ld-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(var(--ld-rule) 1px, transparent 1px);
+  background-size: 100% 46px;
+  opacity: 0.5;
+  mask-image: radial-gradient(120% 76% at 62% 30%, #000 12%, transparent 74%);
+  -webkit-mask-image: radial-gradient(
+    120% 76% at 62% 30%,
+    #000 12%,
+    transparent 74%
+  );
+  pointer-events: none;
+}
+
+.ld-hero-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
+  gap: clamp(34px, 5vw, 74px);
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .ld-hero-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ld-partner {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 26px;
+  padding: 7px 7px 7px 14px;
+  border: 1px solid var(--ld-rule);
+  border-radius: 100px;
+  background: var(--ld-card);
+  font-size: 0.76rem;
+  color: var(--ld-ink-2);
+}
+.ld-partner b {
+  padding: 4px 12px;
+  border-radius: 100px;
+  background: var(--ld-paper-2);
+  color: var(--ld-ink);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.ld-partner-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ld-amber);
+  box-shadow: 0 0 0 3px rgba(217, 140, 31, 0.22);
+  animation: ld-pulse 2.6s ease-in-out infinite;
+}
+@keyframes ld-pulse {
+  50% {
+    box-shadow: 0 0 0 7px rgba(217, 140, 31, 0);
+  }
+}
+
+.ld-hero-title {
+  margin: 0;
+  font-family: var(--ld-display);
+  font-weight: 600;
+  font-size: clamp(2.6rem, 6.6vw, 5.1rem);
+  line-height: 0.98;
+  letter-spacing: -0.032em;
+  /* Line breaks are explicit; balancing would reflow while the word cycles. */
+  text-wrap: initial;
+}
+
+/* The rotating word sits in a fixed-width slot so the headline never
+   reflows mid-animation. A hidden ghost reserves the widest word. */
+.ld-swap-slot {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+.ld-swap-ghost {
+  visibility: hidden;
+  font-style: italic;
+  padding-right: 7px;
+}
+.ld-swap-word {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--ld-red);
+  font-style: italic;
+  white-space: nowrap;
+}
+.ld-caret {
+  position: absolute;
+  top: 0.12em;
+  left: 0;
+  width: 3px;
+  height: 0.78em;
+  background: var(--ld-red);
+  transform: translateX(var(--ld-caret-x, 0));
+  animation: ld-blink 1.1s steps(1) infinite;
+}
+@keyframes ld-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.ld-hero-lede {
+  margin: 26px 0 0;
+  max-width: 46ch;
+  color: var(--ld-ink-2);
+  font-size: 1.06rem;
+  line-height: 1.6;
+}
+.ld-hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+/* ============================================================
+   CONSOLE (live expert index)
+   ============================================================ */
+.ld-console {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--ld-card-edge);
+  border-radius: 8px;
+  background: var(--ld-card);
+  box-shadow: var(--ld-shadow);
+}
+
+.ld-console-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--ld-rule);
+  background: var(--ld-paper-2);
+}
+.ld-lamp {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ld-rule-strong);
+}
+.ld-lamp.is-live {
+  background: var(--ld-red);
+}
+.ld-console-title {
+  font-family: var(--ld-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ld-ink-3);
+}
+.ld-console-count {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-left: auto;
+  font-family: var(--ld-mono);
+  font-size: 0.68rem;
+  color: var(--ld-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+/* Fixed digit column so the label never shifts as the count changes. */
+.ld-console-count em {
+  display: inline-block;
+  min-width: 2ch;
+  text-align: right;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--ld-red);
+}
+
+.ld-search-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ld-rule);
+}
+.ld-search-row svg {
+  flex: none;
+  color: var(--ld-ink-3);
+}
+.ld-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ld-ink);
+  font-family: var(--ld-body);
+  font-size: 0.96rem;
+}
+.ld-search-input::placeholder {
+  color: var(--ld-ink-3);
+}
+.ld-search-input:focus {
+  outline: none;
+}
+
+.ld-chip-row {
+  display: flex;
+  gap: 7px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ld-rule);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ld-chip-row::-webkit-scrollbar {
+  display: none;
+}
+.ld-chip {
+  padding: 6px 11px;
+  border: 1px solid var(--ld-rule);
+  border-radius: 100px;
+  background: transparent;
+  color: var(--ld-ink-2);
+  font-family: var(--ld-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+.ld-chip:hover {
+  border-color: var(--ld-red-edge);
+  color: var(--ld-red);
+}
+.ld-chip[aria-pressed="true"] {
+  background: var(--ld-red);
+  border-color: var(--ld-red);
+  color: #fff;
+}
+
+.ld-records {
+  max-height: 336px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.ld-record {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 13px;
+  align-items: center;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--ld-rule);
+  transition: background 0.2s;
+}
+.ld-record:last-child {
+  border-bottom: 0;
+}
+.ld-record:hover {
+  background: var(--ld-red-wash);
+}
+/* Only the first paint animates; filtering swaps instantly to avoid flicker. */
+.ld-record.is-fresh {
+  animation: ld-record-in 0.34s cubic-bezier(0.2, 0.7, 0.25, 1) both;
+}
+@keyframes ld-record-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+}
+
+.ld-rec-code {
+  font-family: var(--ld-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--ld-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.ld-rec-main {
+  min-width: 0;
+}
+.ld-rec-sector {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ld-ink);
+}
+.ld-rec-sector mark {
+  padding: 0 1px;
+  border-radius: 2px;
+  background: var(--ld-red-edge);
+  color: inherit;
+}
+.ld-rec-seniority {
+  margin-top: 2px;
+  font-size: 0.77rem;
+  color: var(--ld-ink-3);
+}
+.ld-rec-flag {
+  padding: 3px 7px;
+  border: 1px solid var(--ld-rule);
+  border-radius: 3px;
+  font-family: var(--ld-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.09em;
+  color: var(--ld-ink-2);
+  white-space: nowrap;
+}
+.ld-rec-verify {
+  display: grid;
+  place-items: center;
+  color: var(--ld-red);
+}
+
+.ld-console-msg {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--ld-ink-3);
+  font-size: 0.88rem;
+}
+.ld-console-msg code {
+  font-family: var(--ld-mono);
+  color: var(--ld-red);
+}
+
+/* skeleton rows while the API resolves */
+.ld-skeleton {
+  height: 14px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--ld-rule) 25%,
+    var(--ld-paper-2) 37%,
+    var(--ld-rule) 63%
+  );
+  background-size: 400% 100%;
+  animation: ld-shimmer 1.4s ease infinite;
+}
+@keyframes ld-shimmer {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}
+
+/* ============================================================
+   LEDGER STRIP (full-bleed stat band)
+   ============================================================ */
+.ld-ledger-band {
+  position: relative;
+  z-index: 1;
+  margin-top: clamp(56px, 7vw, 92px);
+  border-block: 1px solid var(--ld-ink);
+  background: var(--ld-paper-2);
+}
+.ld-ledger {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: calc(var(--ld-maxw) + 120px);
+  margin-inline: auto;
+  padding-inline: var(--ld-gutter);
+}
+@media (max-width: 760px) {
+  .ld-ledger {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 430px) {
+  .ld-ledger {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ld-entry {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(28px, 3.6vw, 44px) clamp(20px, 2.8vw, 42px);
+  transition: background 0.35s cubic-bezier(0.2, 0.7, 0.25, 1);
+}
+.ld-entry:first-child {
+  padding-left: 0;
+}
+.ld-entry:last-child {
+  padding-right: 0;
+}
+.ld-entry + .ld-entry::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 1px;
+  background: var(--ld-rule);
+}
+.ld-entry::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background: linear-gradient(to top, var(--ld-red-wash), transparent 62%);
+  transition: opacity 0.38s;
+}
+.ld-entry:hover::after {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  .ld-entry:nth-child(odd) {
+    padding-left: 0;
+  }
+  .ld-entry:nth-child(even) {
+    padding-right: 0;
+  }
+  .ld-entry:nth-child(n + 3) {
+    border-top: 1px solid var(--ld-rule);
+  }
+  .ld-entry:nth-child(odd)::before {
+    display: none;
+  }
+}
+@media (max-width: 430px) {
+  .ld-entry {
+    padding-inline: 0;
+  }
+  .ld-entry + .ld-entry {
+    border-top: 1px solid var(--ld-rule);
+  }
+  .ld-entry + .ld-entry::before {
+    display: none;
+  }
+}
+
+.ld-entry-ordinal {
+  display: block;
+  margin-bottom: 14px;
+  font-family: var(--ld-mono);
+  font-style: normal;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  color: var(--ld-ink-3);
+  transition: color 0.3s;
+}
+.ld-entry:hover .ld-entry-ordinal {
+  color: var(--ld-red);
+}
+
+.ld-entry-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  font-family: var(--ld-display);
+  font-weight: 600;
+  font-size: clamp(2.3rem, 4.6vw, 3.9rem);
+  line-height: 0.88;
+  letter-spacing: -0.038em;
+  color: var(--ld-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.ld-entry-figure.is-word {
+  font-size: clamp(1.35rem, 2.5vw, 1.95rem);
+  font-style: italic;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ld-red);
+}
+/* The suffix lands only once the digits have settled. */
+.ld-entry-suffix {
+  font-family: var(--ld-mono);
+  font-size: 0.34em;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ld-red);
+  opacity: 0;
+  transform: translateY(-1.05em) scale(0.6);
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.ld-entry.is-settled .ld-entry-suffix {
+  opacity: 1;
+  transform: translateY(-1.05em) scale(1);
+}
+
+.ld-entry-label {
+  display: block;
+  margin-top: 12px;
+  font-family: var(--ld-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ld-ink-3);
+  transition: color 0.3s;
+}
+.ld-entry:hover .ld-entry-label {
+  color: var(--ld-ink-2);
+}
+
+/* ── the small data mark under each figure ── */
+.ld-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 20px;
+  margin-top: 18px;
+}
+.ld-spark-bar {
+  flex: 1;
+  height: var(--ld-h);
+  border-radius: 1px;
+  background: var(--ld-rule-strong);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition:
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.25, 1) var(--ld-bd, 0ms),
+    background 0.3s;
+}
+.ld-spark.is-in .ld-spark-bar {
+  transform: scaleY(1);
+}
+.ld-spark-bar:last-child {
+  background: var(--ld-red);
+}
+.ld-entry:hover .ld-spark-bar {
+  background: var(--ld-red);
+}
+
+.ld-spark.is-ticks {
+  gap: 4px;
+}
+.ld-spark-tick {
+  flex: 1;
+  height: 13px;
+  border-radius: 1px;
+  background: var(--ld-rule-strong);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.34s var(--ld-bd, 0ms),
+    transform 0.34s var(--ld-bd, 0ms),
+    background 0.3s;
+}
+.ld-spark.is-in .ld-spark-tick {
+  opacity: 1;
+  transform: none;
+}
+.ld-entry:hover .ld-spark-tick {
+  background: var(--ld-red);
+}
+
+.ld-spark.is-dots {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  height: 20px;
+  overflow: hidden;
+}
+.ld-spark-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ld-rule-strong);
+  transform: scale(0);
+  transition:
+    transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1) var(--ld-bd, 0ms),
+    background 0.3s;
+}
+.ld-spark.is-in .ld-spark-dot {
+  transform: scale(1);
+}
+.ld-entry:hover .ld-spark-dot {
+  background: var(--ld-red);
+}
+
+.ld-spark.is-live {
+  align-items: center;
+  gap: 7px;
+}
+.ld-pulse-dot {
+  position: relative;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ld-red);
+}
+.ld-pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--ld-red);
+  animation: ld-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes ld-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+.ld-wave {
+  flex: 1;
+  height: 14px;
+  color: var(--ld-rule-strong);
+  transition: color 0.3s;
+}
+.ld-entry:hover .ld-wave {
+  color: var(--ld-red);
+}
+.ld-wave path {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: ld-draw 2.6s ease-in-out infinite;
+}
+@keyframes ld-draw {
+  0% {
+    stroke-dashoffset: 120;
+  }
+  55%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ============================================================
+   CAPABILITIES
+   ============================================================ */
+.ld-cap {
+  padding: clamp(64px, 9vw, 118px) 0;
+}
+.ld-cap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 54px;
+  border: 1px solid var(--ld-rule);
+  background: var(--ld-rule);
+}
+@media (max-width: 940px) {
+  .ld-cap-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .ld-cap-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ld-cap-cell {
+  position: relative;
+  overflow: hidden;
+  padding: 30px 26px 34px;
+  background: var(--ld-paper);
+  transition: background 0.3s;
+}
+.ld-cap-cell::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ld-red);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.42s cubic-bezier(0.2, 0.7, 0.25, 1);
+}
+.ld-cap-cell:hover {
+  background: var(--ld-card);
+}
+.ld-cap-cell:hover::after {
+  transform: scaleY(1);
+}
+
+.ld-cap-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 20px;
+  border: 1px solid var(--ld-rule-strong);
+  border-radius: 5px;
+  color: var(--ld-red);
+  transition:
+    border-color 0.3s,
+    background 0.3s,
+    transform 0.3s;
+}
+.ld-cap-cell:hover .ld-cap-icon {
+  border-color: var(--ld-red);
+  background: var(--ld-red-wash);
+  transform: translateY(-2px);
+}
+.ld-cap-title {
+  margin: 0 0 10px;
+  font-family: var(--ld-display);
+  font-weight: 600;
+  font-size: 1.16rem;
+  line-height: 1.22;
+}
+.ld-cap-text {
+  margin: 0;
+  font-size: 0.89rem;
+  line-height: 1.62;
+  color: var(--ld-ink-2);
+}
+
+/* ============================================================
+   WORKFLOW
+   ============================================================ */
+.ld-flow {
+  padding: clamp(64px, 9vw, 112px) 0;
+  border-block: 1px solid var(--ld-rule);
+  background: var(--ld-paper-2);
+}
+.ld-flow-steps {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(18px, 3vw, 34px);
+  margin-top: 56px;
+}
+@media (max-width: 880px) {
+  .ld-flow-steps {
+    grid-template-columns: repeat(2, 1fr);
+    row-gap: 40px;
+  }
+}
+@media (max-width: 480px) {
+  .ld-flow-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ld-flow-rail {
+  position: absolute;
+  top: 19px;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: var(--ld-rule-strong);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1.5s cubic-bezier(0.25, 0.8, 0.3, 1);
+}
+.ld-flow-rail.is-in {
+  transform: scaleX(1);
+}
+@media (max-width: 880px) {
+  .ld-flow-rail {
+    display: none;
+  }
+}
+
+.ld-step {
+  position: relative;
+}
+.ld-step-num {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--ld-rule-strong);
+  border-radius: 50%;
+  background: var(--ld-paper);
+  font-family: var(--ld-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ld-ink-2);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background 0.3s,
+    color 0.3s,
+    border-color 0.3s,
+    transform 0.3s;
+}
+.ld-step:hover .ld-step-num {
+  background: var(--ld-red);
+  border-color: var(--ld-red);
+  color: #fff;
+  transform: scale(1.08);
+}
+.ld-step-title {
+  margin: 20px 0 8px;
+  font-family: var(--ld-display);
+  font-weight: 600;
+  font-size: 1.24rem;
+}
+.ld-step-text {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 0.88rem;
+  color: var(--ld-ink-2);
+}
+
+/* ============================================================
+   SECTORS marquee
+   ============================================================ */
+.ld-sectors {
+  padding: clamp(58px, 8vw, 100px) 0;
+  overflow: hidden;
+}
+.ld-marquee {
+  position: relative;
+  margin-top: 46px;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 9%,
+    #000 91%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 9%,
+    #000 91%,
+    transparent
+  );
+}
+.ld-marquee + .ld-marquee {
+  margin-top: 10px;
+}
+.ld-marquee-track {
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  animation: ld-slide 46s linear infinite;
+}
+.ld-marquee:hover .ld-marquee-track {
+  animation-play-state: paused;
+}
+.ld-marquee.is-reverse .ld-marquee-track {
+  animation-direction: reverse;
+}
+@keyframes ld-slide {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ld-sector-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 18px;
+  border: 1px solid var(--ld-rule);
+  border-radius: 100px;
+  background: var(--ld-card);
+  color: var(--ld-ink-2);
+  font-size: 0.88rem;
+  white-space: nowrap;
+  transition:
+    border-color 0.25s,
+    color 0.25s,
+    background 0.25s;
+}
+.ld-sector-tag svg {
+  flex: none;
+  color: var(--ld-red);
+}
+.ld-sector-tag:hover {
+  border-color: var(--ld-red-edge);
+  background: var(--ld-red-wash);
+  color: var(--ld-ink);
+}
+
+/* ============================================================
+   REACH
+   ============================================================ */
+.ld-reach {
+  padding: clamp(64px, 9vw, 112px) 0;
+  border-block: 1px solid var(--ld-rule);
+  background: var(--ld-paper-2);
+}
+.ld-reach-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1fr);
+  gap: clamp(34px, 5vw, 76px);
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .ld-reach-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ld-country-table {
+  overflow: hidden;
+  border: 1px solid var(--ld-rule);
+  border-radius: 6px;
+  background: var(--ld-card);
+}
+.ld-country-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ld-rule);
+  transition:
+    background 0.22s,
+    padding-left 0.22s;
+}
+.ld-country-row:last-child {
+  border-bottom: 0;
+}
+.ld-country-row:hover {
+  background: var(--ld-red-wash);
+  padding-left: 22px;
+}
+.ld-country-iso {
+  width: 3ch;
+  font-family: var(--ld-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: var(--ld-red);
+}
+.ld-country-name {
+  font-size: 0.92rem;
+}
+.ld-country-count {
+  font-family: var(--ld-mono);
+  font-size: 0.78rem;
+  color: var(--ld-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.ld-meter {
+  grid-column: 1 / -1;
+  height: 3px;
+  margin-top: 2px;
+  border-radius: 2px;
+  background: var(--ld-rule);
+  overflow: hidden;
+}
+.ld-meter i {
+  display: block;
+  height: 100%;
+  background: var(--ld-red);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1.1s cubic-bezier(0.2, 0.7, 0.25, 1) var(--ld-bd, 0ms);
+}
+.ld-meter.is-in i {
+  transform: scaleX(1);
+}
+
+/* ============================================================
+   TRUST
+   ============================================================ */
+.ld-trust {
+  padding: clamp(64px, 9vw, 112px) 0;
+}
+.ld-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 34px);
+  margin-top: 52px;
+}
+@media (max-width: 900px) {
+  .ld-trust-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 520px) {
+  .ld-trust-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.ld-trust-cell {
+  padding-top: 22px;
+  border-top: 2px solid var(--ld-ink);
+  transition: border-color 0.3s;
+}
+.ld-trust-cell:hover {
+  border-top-color: var(--ld-red);
+}
+.ld-trust-cell svg {
+  margin-bottom: 16px;
+  color: var(--ld-red);
+}
+.ld-trust-title {
+  margin: 0 0 9px;
+  font-family: var(--ld-display);
+  font-weight: 600;
+  font-size: 1.14rem;
+}
+.ld-trust-text {
+  margin: 0;
+  font-size: 0.87rem;
+  line-height: 1.6;
+  color: var(--ld-ink-2);
+}
+
+/* ============================================================
+   CTA
+   ============================================================ */
+.ld-cta {
+  padding: 0 0 clamp(60px, 8vw, 96px);
+}
+.ld-cta-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: clamp(40px, 6vw, 82px) clamp(28px, 5vw, 72px);
+  border-radius: 10px;
+  background: var(--ld-ink);
+  color: var(--ld-paper);
+}
+.ld-cta-card::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: radial-gradient(
+    46% 46% at 78% 22%,
+    rgba(174, 39, 45, 0.55),
+    transparent 68%
+  );
+  animation: ld-drift 17s ease-in-out infinite alternate;
+}
+@keyframes ld-drift {
+  from {
+    transform: translate(-3%, -2%) scale(1);
+  }
+  to {
+    transform: translate(5%, 4%) scale(1.14);
+  }
+}
+.ld-cta-eyebrow {
+  margin: 0 0 20px;
+  font-family: var(--ld-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: #e9989b;
+}
+.ld-cta-title {
+  margin: 0;
+  max-width: 19ch;
+  font-family: var(--ld-display);
+  font-weight: 600;
+  font-size: clamp(1.9rem, 4.4vw, 3.3rem);
+  line-height: 1.04;
+  letter-spacing: -0.026em;
+  color: var(--ld-paper);
+}
+.ld-cta-title em {
+  font-style: italic;
+  color: #f0a7aa;
+}
+.ld-cta-text {
+  margin: 20px 0 0;
+  max-width: 48ch;
+  font-size: 1rem;
+  color: rgba(246, 240, 237, 0.72);
+}
+.ld-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+}
+.ld-btn-paper {
+  background: var(--ld-paper);
+  color: var(--ld-ink);
+}
+.ld-btn-paper:hover {
+  transform: translateY(-2px);
+}
+.ld-btn-outline-light {
+  background: transparent;
+  color: var(--ld-paper);
+  border-color: rgba(246, 240, 237, 0.34);
+}
+.ld-btn-outline-light:hover {
+  border-color: var(--ld-paper);
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+.ld-root :focus-visible {
+  outline: 2px solid var(--ld-red);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.ld-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-root *,
+  .ld-root *::before,
+  .ld-root *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .ld-rise {
+    opacity: 1;
+    transform: none;
+  }
+}

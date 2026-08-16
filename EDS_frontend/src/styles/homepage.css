@@ -948,20 +948,24 @@ body {
 
 .capabilities-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  max-width: 1100px;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 20px;
+  max-width: 1160px;
   margin: 0 auto;
 }
 
 .capability-card {
+  position: relative;
   background: var(--theme-bg-primary);
-  border-radius: 16px;
-  padding: 36px 32px;
+  border-radius: 20px;
+  padding: 32px;
   border: 1px solid var(--theme-border-light);
+  grid-column: span 2;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
+  overflow: hidden;
   transition:
     transform 0.25s ease,
     box-shadow 0.25s ease,
@@ -970,75 +974,99 @@ body {
   cursor: default;
 }
 
+/* subtle brand watermark instead of a flat tint box behind every icon */
+.capability-card::after {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-primary-ultra-light) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
 .capability-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary-border);
+}
+
+.capability-card:hover::after {
+  opacity: 1;
+}
+
+/* ── Featured lead tile: spans two columns, solid brand treatment ── */
+.capability-card-featured {
+  grid-column: span 3;
+  grid-row: span 2;
+  justify-content: flex-end;
+  background: var(--gradient-dark);
+  border-color: transparent;
+  color: var(--color-white);
+  padding: 40px 36px;
+}
+
+.capability-card-featured::after {
+  background: radial-gradient(circle, rgba(174, 39, 45, 0.35) 0%, transparent 70%);
+  opacity: 1;
+  width: 220px;
+  height: 220px;
+  top: -60px;
+  right: -60px;
+}
+
+.capability-card-featured .capability-icon-box {
+  background: var(--color-primary);
+  color: var(--color-white);
+  width: 56px;
+  height: 56px;
+}
+
+.capability-card-featured .capability-card-title {
+  color: var(--color-white);
+  font-size: 1.35rem;
+}
+
+.capability-card-featured .capability-card-desc {
+  color: var(--color-gray-300);
+  font-size: 0.95rem;
+}
+
+.capability-card-featured:hover {
+  transform: translateY(-4px);
+  border-color: transparent;
   box-shadow: var(--shadow-xl);
-  border-color: var(--color-primary);
 }
 
-/* ── Card top row: icon + number badge ── */
-.capability-card-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
-.capability-number {
-  font-family: var(--font-secondary);
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--theme-text-muted);
-  letter-spacing: 1px;
-  padding-top: 4px;
-  transition: color 0.25s ease;
-}
-
-.capability-card:hover .capability-number {
-  color: var(--color-primary);
-}
-
-/* ── Icon box ── */
+/* ── Icon: flat brand-red glyph, no tinted square ── */
 .capability-icon-box {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: var(--color-primary);
   transition: transform 0.25s ease;
 }
 
 .capability-card:hover .capability-icon-box {
-  transform: translateY(-4px) scale(1.08);
-}
-
-.capability-icon-box.red {
-  background: var(--color-primary-ultra-light);
-  color: var(--color-primary);
-  transition: background-color 0.3s ease;
-}
-
-.capability-icon-box.gray {
-  background: var(--theme-bg-tertiary);
-  color: var(--theme-text-secondary);
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+  transform: scale(1.1);
 }
 
 /* ── Card body ── */
-.capability-card-body {
-  flex: 1;
-}
-
 .capability-card-title {
-  font-family: var(--font-secondary);
-  font-size: 1.05rem;
+  font-family: var(--font-primary);
+  font-size: 1.08rem;
   font-weight: 700;
   color: var(--theme-text-primary);
-  line-height: 1.4;
-  margin-bottom: 10px;
+  line-height: 1.35;
+  letter-spacing: -0.2px;
+  margin: 0;
   transition: color 0.3s ease;
 }
 
@@ -1046,46 +1074,31 @@ body {
   font-family: var(--font-secondary);
   font-size: 0.88rem;
   color: var(--theme-text-secondary);
-  line-height: 1.75;
+  line-height: 1.7;
   margin: 0;
   transition: color 0.3s ease;
-}
-
-/* ── Learn more link ── */
-.capability-learn-more {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-secondary);
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--theme-text-muted);
-  transition: color 0.25s ease;
-  margin-top: 4px;
-}
-
-.capability-card:hover .capability-learn-more {
-  color: var(--color-primary);
-}
-
-.capability-arrow {
-  display: inline-block;
-  transition: transform 0.25s ease;
-}
-
-.capability-card:hover .capability-arrow {
-  transform: translateX(5px);
 }
 
 @media (max-width: 900px) {
   .capabilities-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .capability-card {
+    grid-column: span 1;
+  }
+  .capability-card-featured {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
 }
 
 @media (max-width: 600px) {
   .capabilities-grid {
     grid-template-columns: 1fr;
+  }
+  .capability-card,
+  .capability-card-featured {
+    grid-column: span 1;
   }
   .capabilities-title {
     font-size: 1.8rem;
@@ -2756,9 +2769,13 @@ body {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 }
 
-[data-theme="dark"] .capability-icon-box.gray {
-  background: var(--color-gray-800);
-  color: var(--color-gray-300);
+[data-theme="dark"] .capability-card-featured {
+  background: var(--gradient-dark);
+  border-color: transparent;
+}
+
+[data-theme="dark"] .capability-card-featured:hover {
+  border-color: transparent;
 }
 
 /* Dark mode footer enhancements */

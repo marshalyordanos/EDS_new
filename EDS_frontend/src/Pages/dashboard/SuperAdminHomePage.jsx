@@ -1,8 +1,8 @@
-import { Link, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Dropdown, message } from "antd";
 import { MoreOutlined } from "@ant-design/icons";
+import { FiSearch, FiUserPlus, FiUpload, FiBarChart2 } from "react-icons/fi";
 import PageHeader from "../../Components/shared/PageHeader";
 import CommonTable from "../../Components/shared/CommonTable";
 import CommonDeleteModal from "../../Components/shared/CommonDeleteModal";
@@ -42,13 +42,10 @@ export default function UserManagementDashboard({ token }) {
         });
 
         if (!adminsRes.ok) {
-          const errorText = await adminsRes.text();
-          console.error("Admin fetch error response:", errorText);
           message.error(`Failed to fetch admins: ${adminsRes.status}`);
         }
 
         const adminsData = await adminsRes.json();
-        console.log("Admins data:", adminsData);
         // Handle both direct array and paginated response
         const adminsArray = Array.isArray(adminsData)
           ? adminsData
@@ -70,15 +67,12 @@ export default function UserManagementDashboard({ token }) {
             backendRole: user.role, // Keep original role for debugging
             registeredDate: user.created_at || user.registered_by || null,
           }));
-        console.log("Transformed admins:", transformedAdmins);
       } catch (err) {
-        console.error("Admin fetch failed:", err.message);
         message.error(err.message);
         setError(err.message);
       }
 
       const allUsers = [...transformedAdmins];
-      console.log("Transformed users:", allUsers);
 
       setUsers(allUsers);
       setLoading(false);
@@ -101,7 +95,6 @@ export default function UserManagementDashboard({ token }) {
 
   const handleDelete = async () => {
     try {
-      console.log("recores:: ", modeID);
       setLoading(true);
       const res = await protectedApiClient.delete(
         `/api/v1/users/${modeID?.id}/`
@@ -118,7 +111,6 @@ export default function UserManagementDashboard({ token }) {
   };
   const handleResetPassword = async () => {
     try {
-      console.log("recores:: ", modeID);
       setLoading(true);
       const res = await protectedApiClient.post(
         `/api/v1/users/${modeID?.id}/reset-password/`
@@ -133,7 +125,6 @@ export default function UserManagementDashboard({ token }) {
   };
 
   const onClick = ({ key }, record) => {
-    console.log("wwwwwwwww:", record);
     setModeID(record);
     if (key == "reset") {
       setIsModalOpen(true);
@@ -201,14 +192,6 @@ export default function UserManagementDashboard({ token }) {
     },
   ];
 
-  const updateUserStatus = (userId, newStatus) => {
-    setUsers(
-      users.map((user) =>
-        user.id === userId ? { ...user, cvUpdated: newStatus } : user
-      )
-    );
-  };
-
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value); // Update search query immediately for live filtering
@@ -229,32 +212,6 @@ export default function UserManagementDashboard({ token }) {
 
     return matchesRole && matchesSearch;
   });
-
-  const handleImageError = (e, userName) => {
-    e.target.style.display = "none";
-    e.target.nextSibling.style.display = "flex";
-  };
-
-  const getUserInitials = (name) => {
-    if (!name || typeof name !== "string") return "N/A";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  };
-
-  const getAvatarColor = (name) => {
-    const colors = [
-      "bg-gray-500",
-      "bg-green-600",
-      "bg-orange-500",
-      "bg-[var(--color-primary)]",
-    ];
-    return colors[
-      (name && typeof name === "string" ? name.length : 0) % colors.length
-    ];
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -317,35 +274,14 @@ export default function UserManagementDashboard({ token }) {
           </div>
         )}
         
-        <PageHeader title="USER MANAGEMENT" />
+        <PageHeader
+          title="User Management"
+          description="Manage system admins, company accounts, and platform access."
+        />
 
-        <div className="dashboard-grid dashboard-grid-3 mb-8">
-          <button
-            onClick={() => navigate("/dashboard/CreateAdmin")}
-            className="dashboard-btn-secondary"
-          >
-            Create Company Users
-          </button>
-
-          <button
-            onClick={() => navigate("/dashboard/register/quick-upload")}
-            className="dashboard-btn-secondary"
-          >
-            Add Experts
-          </button>
-
-          <button
-            onClick={() => navigate("/dashboard/analytics")}
-            className="dashboard-btn-secondary"
-          >
-            Analytics
-          </button>
-        </div>
         <div className="dashboard-quick-stats">
           <div className="quick-stat-item">
-            <div className="quick-stat-number">
-              {users.length}
-            </div>
+            <div className="quick-stat-number">{users.length}</div>
             <div className="quick-stat-label">Total Users</div>
           </div>
           <div className="quick-stat-item">
@@ -355,18 +291,48 @@ export default function UserManagementDashboard({ token }) {
             <div className="quick-stat-label">CV Updated</div>
           </div>
           <div className="quick-stat-item">
-            <div className="quick-stat-number">
-              {countNewAdmins()}
-            </div>
+            <div className="quick-stat-number">{countNewAdmins()}</div>
             <div className="quick-stat-label">New Users (7 days)</div>
           </div>
+        </div>
+
+        <div className="dashboard-grid dashboard-grid-3 mb-8">
+          <button
+            onClick={() => navigate("/dashboard/users")}
+            className="quick-action-card"
+          >
+            <span className="quick-action-icon">
+              <FiUserPlus />
+            </span>
+            <span className="quick-action-label">Manage Users</span>
+          </button>
+
+          <button
+            onClick={() => navigate("/dashboard/register/quick-upload")}
+            className="quick-action-card"
+          >
+            <span className="quick-action-icon">
+              <FiUpload />
+            </span>
+            <span className="quick-action-label">Add Experts</span>
+          </button>
+
+          <button
+            onClick={() => navigate("/dashboard/analytics")}
+            className="quick-action-card"
+          >
+            <span className="quick-action-icon">
+              <FiBarChart2 />
+            </span>
+            <span className="quick-action-label">Analytics</span>
+          </button>
         </div>
 
         <div className="dashboard-search-section">
           <div className="flex items-center justify-between mb-4">
             <h2 className="dashboard-title text-2xl">Directory</h2>
             <select
-              className="w-auto min-w-40 px-3 py-2 rounded-lg border border-[var(--theme-border-medium)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] outline-none focus:border-[var(--color-primary)] transition-colors"
+              className="w-auto min-w-40 px-3 py-2 rounded-lg bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] outline-none transition-colors"
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
             >
@@ -375,7 +341,7 @@ export default function UserManagementDashboard({ token }) {
               <option value="COMPANY_ADMIN">Company Admin</option>
             </select>
           </div>
-          
+
           <div className="dashboard-search-bar">
             <input
               type="text"
@@ -385,7 +351,7 @@ export default function UserManagementDashboard({ token }) {
               className="dashboard-search-input"
             />
             <div className="dashboard-search-icon">
-              🔍
+              <FiSearch />
             </div>
           </div>
         </div>
@@ -431,86 +397,6 @@ export default function UserManagementDashboard({ token }) {
         ) : (
           ""
         )}
-        {/* {filteredUsers.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">
-              {users.length === 0
-                ? "No admins or super admins found in the system."
-                : "No users found for the selected role or search criteria."}
-            </p>
-            <p className="text-gray-400 text-sm">
-              Total users loaded: {users.length}
-            </p>
-          </div>
-        ) : (
-          filteredUsers.map((user) => (
-            <div
-              key={user.id}
-              className="bg-white border border-red-200 rounded-lg p-4 flex items-center justify-between shadow-sm"
-            >
-              <div className="flex items-center gap-4">
-                <div className="relative w-12 h-12">
-                  {user.avatar ? (
-                    <>
-                      <img
-                        src={user.avatar || "/placeholder.svg"}
-                        alt={`${user.name || "User"}'s profile`}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                        onError={(e) => handleImageError(e, user.name)}
-                      />
-                      <div
-                        className={`absolute top-0 left-0 w-12 h-12 rounded-full flex items-center justify-center ${getAvatarColor(
-                          user.name
-                        )} hidden`}
-                      >
-                        <span className="text-white font-semibold text-base">
-                          {getUserInitials(user.name)}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center ${getAvatarColor(
-                        user.name
-                      )}`}
-                    >
-                      <span className="text-white font-semibold text-base">
-                        {getUserInitials(user.name)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <div className="font-semibold text-gray-600 text-base">
-                    {user.name || "Unknown User"}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {user.email || "N/A"}
-                  </div>
-                  {user.title && (
-                    <div className="text-xs text-gray-400 font-medium">
-                      {user.title}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-40">
-                <div className="text-sm text-gray-700">
-                  Status: <span className="font-semibold">{user.status}</span>
-                </div>
-                {user.registeredDate && (
-                  <div className="text-xs text-gray-500">
-                    Registered: {formatDate(user.registeredDate)}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
-        )} */}
-
-      
       </div>
     </div>
   );

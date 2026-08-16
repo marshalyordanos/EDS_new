@@ -11,6 +11,9 @@ import {
   RefreshCw,
   Plus,
 } from "lucide-react";
+import AnalyticsPanel from "../../Components/dashboard/AnalyticsPanel";
+// AnalyticsPanel is styled with the --con-* token system.
+import "../../styles/console.css";
 
 export default function CompanyDashboard() {
   const [experts, setExperts] = useState([]);
@@ -241,6 +244,15 @@ export default function CompanyDashboard() {
             <div className="quick-stat-number">{getExpertsThisMonth()}</div>
           </div>
         </div>
+
+        {/* Analytics merged in from the retired /dashboard/my-analytics page.
+            Tiles are off because the quick stats above already carry them. */}
+        <AnalyticsPanel
+          experts={experts}
+          loading={loading}
+          scope="portfolio"
+          showTiles={false}
+        />
 
         <div className="dashboard-card">
           <div className="p-6 border-b border-[var(--theme-border-light)]">

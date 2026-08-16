@@ -1,11 +1,25 @@
-import { Avatar, Popover, Button, Modal, Form } from "antd";
+import { Popover, Button, Modal, Form } from "antd";
 import { useState } from "react";
-import { UserOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { FiLogOut } from "react-icons/fi";
 import ChangePasswordForm from "../forms/ChangePasswordForm";
 
-const UserProfileSection = ({ fullName, email, isExpanded, token }) => {
+const ROLE_LABELS = {
+  admin: "System Admin",
+  company: "Company Admin",
+  content_manager: "Content Manager",
+};
+
+const initialsOf = (name) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "U";
+
+const UserProfileSection = ({ fullName, email, role, isExpanded, token }) => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
@@ -40,19 +54,15 @@ const UserProfileSection = ({ fullName, email, isExpanded, token }) => {
 
   return (
     <>
-      <Popover content={popoverContent} trigger="click" placement="bottomRight">
-        <div className="flex items-center w-full p-2 rounded-lg cursor-pointer hover:bg-white/10">
-          <Avatar size={40} icon={<UserOutlined />} />
-          <div
-            className={`flex flex-col overflow-hidden transition-all duration-300 ${
-              isExpanded ? "ml-3" : "w-0"
-            }`}
-          >
-            <span className="font-semibold text-white truncate">
-              {fullName}
-            </span>
-            <span className="text-sm text-[var(--theme-text-muted)] truncate">{email}</span>
-          </div>
+      <Popover content={popoverContent} trigger="click" placement="rightBottom">
+        <div className="con-rail-user" title={isExpanded ? undefined : fullName}>
+          <span className="con-avatar">{initialsOf(fullName)}</span>
+          {isExpanded && (
+            <div className="con-rail-who">
+              <b>{fullName}</b>
+              <small>{ROLE_LABELS[role] || email}</small>
+            </div>
+          )}
         </div>
       </Popover>
 

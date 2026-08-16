@@ -60,22 +60,6 @@ a {
   border-color: var(--color-primary);
 }
 
-/* ── Sidebar Navigation Styling ── */
-.custom-sidebar nav a span,
-.custom-sidebar nav button span {
-  font-size: 16px !important;
-}
-.custom-popover .ant-popover-inner {
-  background-color: var(--color-primary) !important;
-  padding: 8px !important;
-}
-.custom-popover .ant-popover-arrow-content {
-  background-color: var(--color-primary) !important;
-}
-
-.custom-popover .ant-popover-inner-content ul {
-  background-color: transparent !important;
-}
 .ant-checkbox-inner {
   border: 1px solid var(--theme-border-medium) !important;
 }
@@ -159,10 +143,6 @@ a {
 }
 
 .ant-btn-default:not(:disabled):hover {
-  border-color: var(--theme-border-medium) !important; 
-  color: var(--theme-text-secondary) !important;      
-}
-
-.custom-sidebar nav::-webkit-scrollbar {
-  display: none;
+  border-color: var(--theme-border-medium) !important;
+  color: var(--theme-text-secondary) !important;
 }

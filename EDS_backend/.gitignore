@@ -9,3 +9,5 @@ db.sqlite3
 media/
 *.pyc
 __pycache__/
+.venv/
+*.venv/

@@ -17,7 +17,8 @@ import {
   MinusCircleOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
-import MultiStepForm from "../../Components/forms/MultiStepForm ";
+import ConsoleStepForm from "../../Components/forms/ConsoleStepForm";
+import CvPaperPreview from "../../Components/dashboard/CvPaperPreview";
 import { getNameList } from "country-list";
 import dayjs from "dayjs";
 import {
@@ -28,7 +29,6 @@ import {
   createNestedResource,
   deleteNestedResource,
 } from "../../services/expertService";
-import PageHeader from "../../Components/shared/PageHeader";
 
 const { Option } = Select;
 const capitalize = (s) => {
@@ -201,204 +201,7 @@ const languages = [
   { value: "Zulu" },
 ];
 
-const nationalitys = [
-  { value: "Afghan", label: "Afghan" },
-  { value: "Albanian", label: "Albanian" },
-  { value: "Algerian", label: "Algerian" },
-  { value: "American", label: "American" },
-  { value: "Andorran", label: "Andorran" },
-  { value: "Angolan", label: "Angolan" },
-  { value: "Antiguan", label: "Antiguan" },
-  { value: "Argentine", label: "Argentine" },
-  { value: "Armenian", label: "Armenian" },
-  { value: "Australian", label: "Australian" },
-  { value: "Austrian", label: "Austrian" },
-  { value: "Azerbaijani", label: "Azerbaijani" },
-  { value: "Bahamian", label: "Bahamian" },
-  { value: "Bahraini", label: "Bahraini" },
-  { value: "Bangladeshi", label: "Bangladeshi" },
-  { value: "Barbadian", label: "Barbadian" },
-  { value: "Basotho", label: "Basotho" },
-  { value: "Belarusian", label: "Belarusian" },
-  { value: "Belgian", label: "Belgian" },
-  { value: "Belizean", label: "Belizean" },
-  { value: "Beninese", label: "Beninese" },
-  { value: "Bhutanese", label: "Bhutanese" },
-  { value: "Bolivian", label: "Bolivian" },
-  { value: "Bosnian", label: "Bosnian" },
-  { value: "Botswanan", label: "Botswanan" },
-  { value: "Brazilian", label: "Brazilian" },
-  { value: "British", label: "British" },
-  { value: "Bruneian", label: "Bruneian" },
-  { value: "Bulgarian", label: "Bulgarian" },
-  { value: "Burkinabé", label: "Burkinabé" },
-  { value: "Burmese", label: "Burmese" },
-  { value: "Burundian", label: "Burundian" },
-  { value: "Cabo Verdean", label: "Cabo Verdean" },
-  { value: "Cambodian", label: "Cambodian" },
-  { value: "Cameroonian", label: "Cameroonian" },
-  { value: "Canadian", label: "Canadian" },
-  { value: "Central African", label: "Central African" },
-  { value: "Chadian", label: "Chadian" },
-  { value: "Chilean", label: "Chilean" },
-  { value: "Chinese", label: "Chinese" },
-  { value: "Colombian", label: "Colombian" },
-  { value: "Comoran", label: "Comoran" },
-  { value: "Congolese", label: "Congolese" },
-  { value: "Costa Rican", label: "Costa Rican" },
-  { value: "Croatian", label: "Croatian" },
-  { value: "Cuban", label: "Cuban" },
-  { value: "Cypriot", label: "Cypriot" },
-  { value: "Czech", label: "Czech" },
-  { value: "Danish", label: "Danish" },
-  { value: "Djiboutian", label: "Djiboutian" },
-  { value: "Dominican", label: "Dominican" },
-  { value: "Dutch", label: "Dutch" },
-  { value: "East Timorese", label: "East Timorese" },
-  { value: "Ecuadorian", label: "Ecuadorian" },
-  { value: "Egyptian", label: "Egyptian" },
-  { value: "Emirati", label: "Emirati" },
-  { value: "English", label: "English" },
-  { value: "Equatoguinean", label: "Equatoguinean" },
-  { value: "Eritrean", label: "Eritrean" },
-  { value: "Estonian", label: "Estonian" },
-  { value: "Ethiopian", label: "Ethiopian" },
-  { value: "Fijian", label: "Fijian" },
-  { value: "Finnish", label: "Finnish" },
-  { value: "French", label: "French" },
-  { value: "Gabonese", label: "Gabonese" },
-  { value: "Gambian", label: "Gambian" },
-  { value: "Georgian", label: "Georgian" },
-  { value: "German", label: "German" },
-  { value: "Ghanaian", label: "Ghanaian" },
-  { value: "Greek", label: "Greek" },
-  { value: "Grenadian", label: "Grenadian" },
-  { value: "Guatemalan", label: "Guatemalan" },
-  { value: "Guinean", label: "Guinean" },
-  { value: "Bissau-Guinean", label: "Bissau-Guinean" },
-  { value: "Guyanese", label: "Guyanese" },
-  { value: "Haitian", label: "Haitian" },
-  { value: "Honduran", label: "Honduran" },
-  { value: "Hungarian", label: "Hungarian" },
-  { value: "Icelander", label: "Icelander" },
-  { value: "Indian", label: "Indian" },
-  { value: "Indonesian", label: "Indonesian" },
-  { value: "Iranian", label: "Iranian" },
-  { value: "Iraqi", label: "Iraqi" },
-  { value: "Irish", label: "Irish" },
-  { value: "Israeli", label: "Israeli" },
-  { value: "Italian", label: "Italian" },
-  { value: "Ivorian", label: "Ivorian" },
-  { value: "Jamaican", label: "Jamaican" },
-  { value: "Japanese", label: "Japanese" },
-  { value: "Jordanian", label: "Jordanian" },
-  { value: "Kazakhstani", label: "Kazakhstani" },
-  { value: "Kenyan", label: "Kenyan" },
-  { value: "Kittitian", label: "Kittitian" },
-  { value: "Kosovar", label: "Kosovar" },
-  { value: "Kuwaiti", label: "Kuwaiti" },
-  { value: "Kyrgyzstani", label: "Kyrgyzstani" },
-  { value: "Lao", label: "Lao" },
-  { value: "Latvian", label: "Latvian" },
-  { value: "Lebanese", label: "Lebanese" },
-  { value: "Liberian", label: "Liberian" },
-  { value: "Libyan", label: "Libyan" },
-  { value: "Liechtensteiner", label: "Liechtensteiner" },
-  { value: "Lithuanian", label: "Lithuanian" },
-  { value: "Luxembourger", label: "Luxembourger" },
-  { value: "Macedonian", label: "Macedonian" },
-  { value: "Malagasy", label: "Malagasy" },
-  { value: "Malawian", label: "Malawian" },
-  { value: "Malaysian", label: "Malaysian" },
-  { value: "Maldivian", label: "Maldivian" },
-  { value: "Malian", label: "Malian" },
-  { value: "Maltese", label: "Maltese" },
-  { value: "Marshallese", label: "Marshallese" },
-  { value: "Mauritanian", label: "Mauritanian" },
-  { value: "Mauritian", label: "Mauritian" },
-  { value: "Mexican", label: "Mexican" },
-  { value: "Micronesian", label: "Micronesian" },
-  { value: "Moldovan", label: "Moldovan" },
-  { value: "Monacan", label: "Monacan" },
-  { value: "Mongolian", label: "Mongolian" },
-  { value: "Montenegrin", label: "Montenegrin" },
-  { value: "Moroccan", label: "Moroccan" },
-  { value: "Mozambican", label: "Mozambican" },
-  { value: "Namibian", label: "Namibian" },
-  { value: "Nauruan", label: "Nauruan" },
-  { value: "Nepalese", label: "Nepalese" },
-  { value: "New Zealander", label: "New Zealander" },
-  { value: "Nicaraguan", label: "Nicaraguan" },
-  { value: "Nigerien", label: "Nigerien" },
-  { value: "Nigerian", label: "Nigerian" },
-  { value: "Ni-Vanuatu", label: "Ni-Vanuatu" },
-  { value: "North Korean", label: "North Korean" },
-  { value: "Norwegian", label: "Norwegian" },
-  { value: "Omani", label: "Omani" },
-  { value: "Pakistani", label: "Pakistani" },
-  { value: "Palauan", label: "Palauan" },
-  { value: "Palestinian", label: "Palestinian" },
-  { value: "Panamanian", label: "Panamanian" },
-  { value: "Papua New Guinean", label: "Papua New Guinean" },
-  { value: "Paraguayan", label: "Paraguayan" },
-  { value: "Peruvian", label: "Peruvian" },
-  { value: "Filipino", label: "Filipino" },
-  { value: "Polish", label: "Polish" },
-  { value: "Portuguese", label: "Portuguese" },
-  { value: "Qatari", label: "Qatari" },
-  { value: "Romanian", label: "Romanian" },
-  { value: "Russian", label: "Russian" },
-  { value: "Rwandan", label: "Rwandan" },
-  { value: "Saint Lucian", label: "Saint Lucian" },
-  { value: "Salvadoran", label: "Salvadoran" },
-  { value: "Sammarinese", label: "Sammarinese" },
-  { value: "Samoan", label: "Samoan" },
-  { value: "São Toméan", label: "São Toméan" },
-  { value: "Saudi", label: "Saudi" },
-  { value: "Scottish", label: "Scottish" },
-  { value: "Senegalese", label: "Senegalese" },
-  { value: "Serbian", label: "Serbian" },
-  { value: "Seychellois", label: "Seychellois" },
-  { value: "Sierra Leonean", label: "Sierra Leonean" },
-  { value: "Singaporean", label: "Singaporean" },
-  { value: "Slovak", label: "Slovak" },
-  { value: "Slovene", label: "Slovene" },
-  { value: "Solomon Islander", label: "Solomon Islander" },
-  { value: "Somali", label: "Somali" },
-  { value: "South African", label: "South African" },
-  { value: "South Korean", label: "South Korean" },
-  { value: "South Sudanese", label: "South Sudanese" },
-  { value: "Spanish", label: "Spanish" },
-  { value: "Sri Lankan", label: "Sri Lankan" },
-  { value: "Sudanese", label: "Sudanese" },
-  { value: "Surinamese", label: "Surinamese" },
-  { value: "Swazi", label: "Swazi" },
-  { value: "Swedish", label: "Swedish" },
-  { value: "Swiss", label: "Swiss" },
-  { value: "Syrian", label: "Syrian" },
-  { value: "Tajikistani", label: "Tajikistani" },
-  { value: "Tanzanian", label: "Tanzanian" },
-  { value: "Thai", label: "Thai" },
-  { value: "Togolese", label: "Togolese" },
-  { value: "Tongan", label: "Tongan" },
-  { value: "Trinidadian", label: "Trinidadian" },
-  { value: "Tunisian", label: "Tunisian" },
-  { value: "Turkish", label: "Turkish" },
-  { value: "Turkmen", label: "Turkmen" },
-  { value: "Tuvaluan", label: "Tuvaluan" },
-  { value: "Ugandan", label: "Ugandan" },
-  { value: "Ukrainian", label: "Ukrainian" },
-  { value: "Uruguayan", label: "Uruguayan" },
-  { value: "Uzbekistani", label: "Uzbekistani" },
-  { value: "Vatican", label: "Vatican" },
-  { value: "Venezuelan", label: "Venezuelan" },
-  { value: "Vietnamese", label: "Vietnamese" },
-  { value: "Vincentian", label: "Vincentian" },
-  { value: "Welsh", label: "Welsh" },
-  { value: "Yemeni", label: "Yemeni" },
-  { value: "Zambian", label: "Zambian" },
-  { value: "Zimbabwean", label: "Zimbabwean" },
-];
+import { nationalityOptions as nationalitys } from "../../constants/searchTaxonomy";
 
 const countryOptions = Object.entries(getNameList())
   .map(([name]) => ({
@@ -1261,9 +1064,14 @@ const EditExpertPage = () => {
     },
   ];
 
-  const handleUpdateSubmit = async (formValues) => {
+  /**
+   * @param {boolean} silent Used by "Save & finish later": persist without
+   *   the loading/success toasts or navigation, since the shell drives those
+   *   for a draft save.
+   */
+  const handleUpdateSubmit = async (formValues, { silent = false } = {}) => {
     setIsSubmitting(true);
-    message.loading({ content: "Saving changes...", key: "update" });
+    if (!silent) message.loading({ content: "Saving changes...", key: "update" });
     try {
       const updatePromises = [];
 
@@ -1423,23 +1231,35 @@ const EditExpertPage = () => {
         originalData.research_experience,
         formValues.research_experience || []
       );
-      message.success({
-        content: "Changes saved successfully!",
-        key: "update",
-        duration: 2,
-      });
-      navigate("/dashboard/");
+      if (!silent) {
+        message.success({
+          content: "Changes saved successfully!",
+          key: "update",
+          duration: 2,
+        });
+        // Land back on the search workspace, where this edit was opened from.
+        navigate("/dashboard/search");
+      }
+      return true;
     } catch (error) {
       console.error("Failed to save changes:", error);
-      message.error({
-        content: "Failed to save one or more sections.",
-        key: "update",
-        duration: 2,
-      });
+      if (!silent) {
+        message.error({
+          content: "Failed to save one or more sections.",
+          key: "update",
+          duration: 2,
+        });
+      }
+      return false;
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  /* "Save & finish later": reuses the same save path as the real submit —
+     it already tolerates partial/missing sections — just without the toasts
+     and navigation the shell handles for a draft. */
+  const handleSaveDraft = (currentValues) => handleUpdateSubmit(currentValues, { silent: true });
   if (loading) {
     return (
       <div className="flex items-center justify-center w-full h-screen">
@@ -1448,19 +1268,23 @@ const EditExpertPage = () => {
     );
   }
 
+  /* Same shell as /dashboard/register/build-cv — editing a CV is the same
+     form as building one, so it uses the same stepper, live preview and
+     layout. Only the title and submit label differ. */
   return (
-    <div>
-      <PageHeader title="Edit Expert Profile" description="Update the details for the expert below." />
-      <div className="bg-[var(--theme-bg-primary)] p-8 rounded-lg shadow-md w-full flex-1 flex flex-col">
-        <MultiStepForm
-          form={form}
-          steps={buildCvSteps}
-          onSubmit={handleUpdateSubmit}
-          submitButtonText="Save Changes"
-          isSubmitting={isSubmitting}
-        />
-      </div>
-    </div>
+    <ConsoleStepForm
+      form={form}
+      steps={buildCvSteps}
+      onSubmit={handleUpdateSubmit}
+      submitButtonText="Save changes"
+      isSubmitting={isSubmitting}
+      title="Edit CV"
+      preview={CvPaperPreview}
+      onSaveDraft={handleSaveDraft}
+      isSavingDraft={isSubmitting}
+      hasRecord
+      finishLaterTo="/dashboard/search"
+    />
   );
 };
 

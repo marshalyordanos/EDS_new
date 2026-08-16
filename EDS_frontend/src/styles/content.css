@@ -1,0 +1,605 @@
+/* ============================================================
+   content.css — Blog + Testimonials management pages
+
+   Extends the console vocabulary (console.css) for content work:
+   cover-image cards, quote cards, toolbars and filter chips.
+
+   Every color here reads a --con-* token from tokens.css, which is
+   redefined under [data-theme="dark"]. Nothing in this file declares a
+   color inside a theme block, so light and dark both resolve as a set.
+   ============================================================ */
+
+/* ─────────────────────────────────────────────────────────────
+   1. PAGE SHELL
+   ───────────────────────────────────────────────────────────── */
+
+.cnt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Title block sits left, primary action right, wrapping on narrow screens. */
+.cnt-head {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cnt-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cnt-eyebrow {
+  font-family: var(--font-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+.cnt-head h1 {
+  font-family: var(--font-primary);
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-wrap: balance;
+  color: var(--con-ink);
+  margin: 0;
+}
+
+.cnt-head p {
+  font-size: 13px;
+  color: var(--con-ink-2);
+  margin: 0;
+}
+
+.cnt-head-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   2. STAT ROW
+   ───────────────────────────────────────────────────────────── */
+
+.cnt-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+.cnt-stat {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 15px;
+}
+
+.cnt-stat-glyph {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--con-surface-2);
+  color: var(--con-ink-2);
+  font-size: 16px;
+}
+
+.cnt-stat-glyph.good {
+  background: var(--con-good-wash);
+  color: var(--con-good);
+}
+
+.cnt-stat-glyph.draft {
+  background: var(--con-warn-wash);
+  color: var(--con-warn);
+}
+
+.cnt-stat-glyph.brand {
+  background: var(--con-brand-wash);
+  color: var(--con-brand);
+}
+
+.cnt-stat b {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--con-ink);
+}
+
+.cnt-stat small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--con-ink-3);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3. TOOLBAR (search + filters)
+   ───────────────────────────────────────────────────────────── */
+
+.cnt-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cnt-search {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 0;
+  max-width: 380px;
+}
+
+.cnt-search svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--con-ink-3);
+  pointer-events: none;
+}
+
+.cnt-search input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 32px;
+  font-family: var(--font-secondary);
+  font-size: 13px;
+  color: var(--con-ink);
+  background: var(--con-surface);
+  border: 1px solid var(--con-line);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.cnt-search input::placeholder {
+  color: var(--con-ink-3);
+}
+
+.cnt-search input:focus {
+  border-color: var(--con-line-strong);
+}
+
+/* Segmented status filter — mirrors .con-seg so it reads as one family. */
+.cnt-seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--con-surface-2);
+  border: 1px solid var(--con-line);
+  border-radius: var(--radius-md);
+}
+
+.cnt-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 11px;
+  height: 28px;
+  font-family: var(--font-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--con-ink-2);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius-md) - 3px);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.cnt-seg button:hover {
+  color: var(--con-ink);
+}
+
+.cnt-seg button.on {
+  background: var(--con-surface);
+  color: var(--con-ink);
+  box-shadow: var(--con-shadow);
+}
+
+.cnt-seg-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--con-ink-3);
+}
+
+.cnt-seg button.on .cnt-seg-count {
+  color: var(--con-ink-2);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4. CARD GRID
+   ───────────────────────────────────────────────────────────── */
+
+.cnt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.cnt-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.cnt-card:hover {
+  border-color: var(--con-line-strong);
+  transform: translateY(-2px);
+}
+
+/* Cover sits at a fixed ratio so a mixed-size image set still aligns. */
+.cnt-cover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--con-surface-2);
+  overflow: hidden;
+}
+
+.cnt-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Fallback when a post has no cover: initial on a wash, never a broken frame. */
+.cnt-cover-blank {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-primary);
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--con-ink-3);
+  background: var(--con-surface-2);
+}
+
+.cnt-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 13px 15px;
+  flex: 1;
+}
+
+.cnt-card-title {
+  font-family: var(--font-primary);
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--con-ink);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cnt-excerpt {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--con-ink-2);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cnt-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: auto;
+  padding-top: 4px;
+  font-size: 11.5px;
+  color: var(--con-ink-3);
+}
+
+.cnt-meta-dot {
+  color: var(--con-line-strong);
+}
+
+.cnt-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 15px;
+  border-top: 1px solid var(--con-line);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   5. STATUS PILL
+   ───────────────────────────────────────────────────────────── */
+
+.cnt-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-family: var(--font-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-full);
+  background: var(--con-surface-2);
+  color: var(--con-ink-2);
+  white-space: nowrap;
+}
+
+/* A dot carries the state as well as the color, so it survives greyscale. */
+.cnt-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cnt-pill.live {
+  background: var(--con-good-wash);
+  color: var(--con-good);
+}
+
+.cnt-pill.draft {
+  background: var(--con-warn-wash);
+  color: var(--con-warn);
+}
+
+.cnt-pill.hidden {
+  background: var(--con-surface-2);
+  color: var(--con-ink-3);
+}
+
+.cnt-pill.danger {
+  background: var(--con-brand-wash);
+  color: var(--con-brand);
+}
+
+/* Pill floating over a cover image needs its own opaque chip. */
+.cnt-cover .cnt-pill {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  backdrop-filter: blur(6px);
+  box-shadow: var(--con-shadow);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   6. QUOTE CARD (testimonials)
+   ───────────────────────────────────────────────────────────── */
+
+.cnt-quote-card {
+  display: flex;
+  flex-direction: column;
+  padding: 17px 17px 0;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.cnt-quote-card:hover {
+  border-color: var(--con-line-strong);
+  transform: translateY(-2px);
+}
+
+.cnt-quote-card.is-hidden {
+  opacity: 0.62;
+}
+
+/* Oversized mark reads as a quotation glyph, not a stray character. */
+.cnt-quotemark {
+  font-family: var(--font-primary);
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 0.6;
+  height: 22px;
+  color: var(--con-brand);
+  opacity: 0.28;
+  user-select: none;
+}
+
+.cnt-quote {
+  font-size: 13.5px;
+  line-height: 1.62;
+  color: var(--con-ink);
+  margin: 0 0 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cnt-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding: 12px 0;
+  border-top: 1px solid var(--con-line);
+}
+
+.cnt-avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--con-surface-2);
+}
+
+.cnt-avatar-blank {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--con-brand-wash);
+  color: var(--con-brand);
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cnt-who-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cnt-who-text b {
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--con-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cnt-who-text small {
+  font-size: 11.5px;
+  color: var(--con-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cnt-quote-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 0 13px;
+  border-top: 1px solid var(--con-line);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   7. ICON ACTIONS
+   ───────────────────────────────────────────────────────────── */
+
+.cnt-act {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--con-line);
+  background: var(--con-surface);
+  color: var(--con-ink-2);
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.cnt-act:hover {
+  color: var(--con-ink);
+  border-color: var(--con-line-strong);
+  background: var(--con-surface-2);
+}
+
+.cnt-act.danger:hover {
+  color: var(--con-brand);
+  border-color: var(--con-brand);
+  background: var(--con-brand-wash);
+}
+
+.cnt-act-spacer {
+  margin-left: auto;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   8. EMPTY + LOADING
+   ───────────────────────────────────────────────────────────── */
+
+.cnt-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 52px 20px;
+  text-align: center;
+}
+
+.cnt-empty-glyph {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--con-surface-2);
+  color: var(--con-ink-3);
+  font-size: 20px;
+}
+
+.cnt-empty b {
+  font-family: var(--font-primary);
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--con-ink);
+}
+
+.cnt-empty p {
+  font-size: 12.5px;
+  color: var(--con-ink-3);
+  margin: 0;
+  max-width: 46ch;
+}
+
+.cnt-skel-cover {
+  aspect-ratio: 16 / 9;
+}
+
+.cnt-skel-line {
+  height: 11px;
+  border-radius: var(--radius-sm);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   9. FOCUS + MOTION
+   ───────────────────────────────────────────────────────────── */
+
+.cnt-act:focus-visible,
+.cnt-seg button:focus-visible,
+.cnt-search input:focus-visible {
+  outline: 2px solid var(--con-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cnt-card,
+  .cnt-quote-card,
+  .cnt-act,
+  .cnt-seg button {
+    transition: none;
+  }
+
+  .cnt-card:hover,
+  .cnt-quote-card:hover {
+    transform: none;
+  }
+}

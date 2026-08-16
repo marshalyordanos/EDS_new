@@ -11,8 +11,23 @@ from django.db.models import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
 from cloudinary_storage.storage import RawMediaCloudinaryStorage
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 
 import uuid
+
+
+def cv_storage():
+    """Storage backend for CV uploads.
+
+    Cloudinary in production; local disk when USE_CLOUDINARY is off, so local
+    dev works without Cloudinary credentials. Referenced by name in migrations
+    (Django serializes the callable, not the instance), so switching backends
+    does not generate a new migration per developer.
+    """
+    if getattr(settings, 'USE_CLOUDINARY', True):
+        return RawMediaCloudinaryStorage()
+    return FileSystemStorage()
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -64,6 +79,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
+    class Meta:
+        # stats filters by role and groups by company_name on every dashboard
+        # load; the user list orders by -created_at.
+        indexes = [
+            models.Index(fields=['role'], name='user_role_idx'),
+            models.Index(fields=['company_name'], name='user_company_idx'),
+            models.Index(fields=['-created_at'], name='user_created_idx'),
+        ]
+
     def __str__(self):
         return self.email
 
@@ -87,7 +111,7 @@ class Expert(models.Model):
 
     cv_file = models.FileField(
         upload_to='documents/%Y/%m/%d/',
-        storage=RawMediaCloudinaryStorage(),
+        storage=cv_storage,
         blank= True,
 null =True
         
@@ -172,18 +196,49 @@ null =True
 
 
     class Meta:
-    # db_tablespace = 'tables'  # optional
-        # indexes = [
-        #     models.Index(
-        #         fields=['first_name', 'last_name', 'email', 'resume_text'],
-        #         name='first_last_name_email_indx'  # remove db_tablespace
-        #     ),
-        #     GinIndex(
-        #         fields=['resume_text', 'language_skills']
-        #     )
-        # ]
+        # Indexes below back the queries the console actually issues. The
+        # single-column db_index flags above cover equality lookups on their
+        # own fields; these cover the composite and non-equality patterns
+        # those flags cannot serve.
+        indexes = [
+            # Default list ordering is `created_at`, and every list is first
+            # narrowed by registered_by (company scope) or is_deleted. Without
+            # this the list endpoint is a seq scan + sort on every request.
+            models.Index(
+                fields=['registered_by', '-created_at'],
+                name='expert_regby_created_idx',
+            ),
+            models.Index(fields=['-created_at'], name='expert_created_idx'),
 
-        pass
+            # Dashboard "outdated CVs" and the cv_updated_* filters range-scan
+            # this; stats also groups registrations by month.
+            models.Index(fields=['-updated_at'], name='expert_updated_idx'),
+
+            # is_deleted is a filter on nearly every read but is low-cardinality,
+            # so it only earns an index paired with the ordering column.
+            models.Index(
+                fields=['is_deleted', '-created_at'],
+                name='expert_deleted_created_idx',
+            ),
+
+            # key_words is an ArrayField queried with __overlap, which only a
+            # GIN index can serve — a btree is unusable for containment.
+            GinIndex(fields=['key_words'], name='expert_keywords_gin'),
+
+            # Free-text search hits resume_text with icontains; gin_trgm_ops
+            # makes that an index scan instead of a full-table LIKE. Guarded by
+            # the pg_trgm extension, created in the accompanying migration.
+            GinIndex(
+                fields=['resume_text'],
+                name='expert_resume_trgm',
+                opclasses=['gin_trgm_ops'],
+            ),
+            GinIndex(
+                fields=['expertise_area'],
+                name='expert_expertise_trgm',
+                opclasses=['gin_trgm_ops'],
+            ),
+        ]
 
 
 
@@ -218,6 +273,12 @@ class EducationalBackground(models.Model):
 
     class Meta:
         ordering = ['-year_of_grad']
+        # The FK index alone serves the lookup but not the ordering, so each
+        # prefetched expert still costs a sort. Ordering the index the same way
+        # the model does makes the prefetch a plain index scan.
+        indexes = [
+            models.Index(fields=['expert', '-year_of_grad'], name='edu_expert_grad_idx'),
+        ]
 
     def __str__(self):
         return f'{self.education_level} {self.expert}'
@@ -246,6 +307,11 @@ class WorkExperience(models.Model):
 
     class Meta:
         ordering = ['-start_date']
+        # Matches the model ordering so the completeness prefetch and the
+        # nested work-experience endpoint both scan rather than sort.
+        indexes = [
+            models.Index(fields=['expert', '-start_date'], name='work_expert_start_idx'),
+        ]
 
 
 class Expertise(models.Model):
@@ -272,8 +338,95 @@ class ResearchExperience(models.Model):
     project_name = models.TextField(null=True, blank=True) # Added project_name from prev analysis
     category = models.CharField(max_length=255, blank=True, null=True) # Added category from prev analysis
 
+    class Meta:
+        # filter_funding_agencies runs icontains over client and project_name
+        # across the whole table; trigram indexes turn those into index scans.
+        indexes = [
+            GinIndex(
+                fields=['client'],
+                name='research_client_trgm',
+                opclasses=['gin_trgm_ops'],
+            ),
+            GinIndex(
+                fields=['project_name'],
+                name='research_project_trgm',
+                opclasses=['gin_trgm_ops'],
+            ),
+        ]
+
     # def __str__(self):
         # return self.
+
+
+class AccessRequest(models.Model):
+    """A company's request to unlock one expert's contact info + CV.
+
+    Company users only see the trimmed public view (name/position/experience)
+    for experts they did not register - see PublicExpertSerializer and
+    ExpertViewSet.retrieve. This is the paper trail for how a company earns
+    the full view on one specific expert: they request it, an admin prices
+    and accepts (or rejects) it, and once marked paid the requester gets
+    full access to that one expert only. Access is NOT granted by simply
+    having a paid request row - the permission check (in views.py) queries
+    for a paid AccessRequest matching (expert, requested_by) directly, so
+    there is exactly one source of truth for "can this company see this
+    expert's contact info and CV".
+    """
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),   # just filed, admin has not acted yet
+        ('priced', 'Priced'),     # admin set a price, awaiting payment
+        ('rejected', 'Rejected'), # admin declined; requester can request again
+        ('paid', 'Paid'),         # payment confirmed by admin; access granted
+    ]
+
+    expert = models.ForeignKey(Expert, on_delete=models.CASCADE, related_name='access_requests')
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='access_requests_made'
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    admin_note = models.TextField(blank=True, default='')
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='access_requests_reviewed',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            # The access check asks "is there a paid row for this
+            # (expert, requester)?" on every expert a company user views.
+            # The partial unique constraint below cannot serve it — that one
+            # only covers pending/priced — so without this the planner falls
+            # back to filtering expert_id and status in memory.
+            models.Index(
+                fields=['requested_by', 'expert', 'status'],
+                name='accessreq_user_expert_status',
+            ),
+            # Admin queue: list by status, newest first.
+            models.Index(fields=['status', '-created_at'], name='accessreq_status_created'),
+            # Django does not create an index for the FK when the only other
+            # index on it is the partial constraint.
+            models.Index(fields=['expert'], name='accessreq_expert_idx'),
+        ]
+        constraints = [
+            # Only one row may be "in flight" (pending/priced) per company+expert
+            # at a time - a rejected request frees the pair up to request again,
+            # and a paid request means access already exists so a duplicate
+            # in-flight request would be pointless.
+            models.UniqueConstraint(
+                fields=['expert', 'requested_by'],
+                condition=models.Q(status__in=['pending', 'priced']),
+                name='one_active_access_request_per_expert_requester',
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.requested_by} → {self.expert} ({self.status})"
 
 
         

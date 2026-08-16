@@ -5,20 +5,22 @@ from datetime import timedelta
 import json # Import json for serializing lists
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import viewsets
+from rest_framework import viewsets, serializers
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import User, Expert, EducationalBackground, WorkExperience, PersonalDetail, Expertise, ResearchExperience
+from .models import User, Expert, EducationalBackground, WorkExperience, PersonalDetail, Expertise, ResearchExperience, AccessRequest
 from .serializers import (UserSerializer, ExpertSerializer,
                             CVBuilderSerializer, LoginSerializer,
                             PasswordResetSerializer, PasswordResetConfirmSerializer,
-                            ChangePasswordSerializer, EducationalBackgroundSerializer, 
+                            ChangePasswordSerializer, EducationalBackgroundSerializer,
                             ResearchExperienceSerializer, WorkExperienceSerializer,
-                            ExpertiseSerializer, PersonalDetailSerializer, PublicExpertSerializer,ExpertDynamicSerializer)
+                            ExpertiseSerializer, PersonalDetailSerializer, PublicExpertSerializer,ExpertDynamicSerializer,
+                            LandingIndexTeaserSerializer, AccessRequestSerializer)
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import status
-from django.db.models import Q
-from django.db.models import Q
+from django.db.models import Q, Count, F
+from django.db.models.functions import TruncMonth
+from dateutil.relativedelta import relativedelta
 from django.db import transaction
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from django.contrib.auth.tokens import default_token_generator
@@ -27,14 +29,21 @@ from django.utils.encoding import force_bytes, force_str
 from .tokens import create_jwt_pair_user
 from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework.decorators import action
 from django.contrib.auth import update_session_auth_hash
 from .cv_parser import parse_full_cv
+from .utils import extract_text
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .filters import ExpertFilter
+from .completeness import (
+    COMPLETE_AT,
+    completeness_queryset,
+    evaluate as evaluate_completeness,
+    summarize as summarize_completeness,
+)
 from rest_framework.pagination import PageNumberPagination
 from django.db.models.functions import Lower  # Make sure this import is at the top
 
@@ -127,13 +136,20 @@ class ChangePasswordView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class UserPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    pagination_class = UserPagination
 
     def get_queryset(self):
-        
-        
+
+
         if getattr(self.request.user, "role", None) == "admin":
             return User.objects.all()
         if self.request.user.is_authenticated:
@@ -141,17 +157,67 @@ class UserViewSet(viewsets.ModelViewSet):
         return User.objects.none()
 
     def get_permissions(self):
-        if self.action in ['list', 'create', 'update', 'partial_update', 'destroy', 'reset_password', 'company_names']:
+        if self.action in ['list', 'create', 'update', 'partial_update', 'destroy', 'reset_password', 'company_names', 'stats', 'toggle_active']:
             permission_classes = [IsAuthenticated]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
-    
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['role', 'is_active', 'is_staff']
-    search_fields = ['first_name', 'last_name', 'email']
-    ordering_fields = ['first_name', 'last_name', 'email', 'role']
-    ordering = ['-id']
+    search_fields = ['first_name', 'last_name', 'email', 'company_name']
+    ordering_fields = ['first_name', 'last_name', 'email', 'role', 'created_at']
+    ordering = ['-created_at']
+
+    @action(detail=False, methods=['get'], url_path='stats')
+    def stats(self, request):
+        if getattr(request.user, "role", None) != "admin":
+            return Response(
+                {"error": "You do not have permission to view user statistics."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        thirty_days_ago = now() - timedelta(days=30)
+        by_role = {
+            row['role']: row['count']
+            for row in User.objects.values('role').annotate(count=Count('id'))
+        }
+
+        return Response({
+            'total': User.objects.count(),
+            'admin': by_role.get('admin', 0),
+            'company': by_role.get('company', 0),
+            'content_manager': by_role.get('content_manager', 0),
+            'active': User.objects.filter(is_active=True).count(),
+            'inactive': User.objects.filter(is_active=False).count(),
+            'new_this_month': User.objects.filter(created_at__gte=thirty_days_ago).count(),
+        })
+
+    @action(
+        detail=True,
+        methods=['post'],
+        permission_classes=[IsAuthenticated],
+        url_path='toggle-active'
+    )
+    def toggle_active(self, request, pk=None):
+        if getattr(request.user, "role", None) != "admin":
+            return Response(
+                {"error": "You do not have permission to change user status."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        user = self.get_object()
+        if user.id == request.user.id:
+            return Response(
+                {"error": "You cannot deactivate your own account."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.is_active = not user.is_active
+        user.save(update_fields=['is_active'])
+
+        return Response(UserSerializer(user).data)
+
     @action(detail=False, methods=['get'], url_path='company-names')
     def company_names(self, request):
     
@@ -222,6 +288,11 @@ class UserViewSet(viewsets.ModelViewSet):
                 {"error": "Only admin users can delete users."},
                 status=status.HTTP_403_FORBIDDEN
             )
+        if str(request.user.id) == str(kwargs.get('pk')):
+            return Response(
+                {"error": "You cannot delete your own account."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         return super().destroy(request, *args, **kwargs)
 class LoginRateThrottle(AnonRateThrottle):
     rate = '5/min'
@@ -268,6 +339,102 @@ class ExpertViewSet(viewsets.ModelViewSet):
     ordering_fields = ['first_name', 'last_name', 'created_at', 'updated_at']
     ordering = ['created_at']
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    # Accept multipart so a CV can be sent with the create request itself.
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    # Sort keys handled in Python because the value is computed, not stored.
+    COMPLETENESS_ORDERING = {"completeness": False, "-completeness": True}
+
+    def list(self, request, *args, **kwargs):
+        """Standard list, with `?ordering=completeness` handled in Python.
+
+        DRF's OrderingFilter can only sort on database columns, and the score
+        is computed across five related tables. For the completeness keys we
+        therefore materialise the filtered queryset, sort by score, and
+        paginate the resulting list — every other ordering key falls straight
+        through to the normal path.
+        """
+        ordering = request.query_params.get("ordering", "")
+        if ordering not in self.COMPLETENESS_ORDERING:
+            return super().list(request, *args, **kwargs)
+
+        # filter_queryset would otherwise also apply OrderingFilter and reject
+        # the unknown key; it simply leaves the ordering untouched instead.
+        queryset = self.filter_queryset(self.get_queryset())
+        experts = sorted(
+            queryset,
+            key=lambda expert: evaluate_completeness(expert)["percent"],
+            reverse=self.COMPLETENESS_ORDERING[ordering],
+        )
+
+        page = self.paginate_queryset(experts)
+        if page is not None:
+            return self.get_paginated_response(self.get_serializer(page, many=True).data)
+        return Response(self.get_serializer(experts, many=True).data)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated],
+            url_path='completeness-summary')
+    def completeness_summary(self, request):
+        """Distribution of CV completeness across the caller's visible experts.
+
+        Honours the same filters as the list endpoint, so the search page can
+        show how the current result set breaks down rather than only the
+        database as a whole.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        return Response(summarize_completeness(queryset))
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated], url_path='databases')
+    def databases(self, request):
+        """Checkbox options for the "Database" filter on the search page.
+
+        One row per company that has actually registered experts, plus a
+        single synthetic "DAB" row standing in for every admin account with
+        no company name of its own — the platform operator's own database,
+        shown as one entry rather than one per admin user. Companies (and
+        admins) that exist but have registered nobody are left out, since
+        they would filter to an empty result.
+        """
+        visible = self.get_queryset()
+
+        company_counts = (
+            visible
+            .filter(registered_by__role='company')
+            .exclude(registered_by__company_name__isnull=True)
+            .exclude(registered_by__company_name__exact='')
+            .annotate(lower_company=Lower('registered_by__company_name'))
+            .values('lower_company')
+            .annotate(count=Count('id'))
+            .order_by('lower_company')
+        )
+
+        options = [
+            {'value': row['lower_company'], 'label': row['lower_company'], 'count': row['count']}
+            for row in company_counts
+        ]
+
+        dab_count = visible.filter(registered_by__role='admin').filter(
+            Q(registered_by__company_name__isnull=True) | Q(registered_by__company_name__exact='')
+        ).count()
+
+        if dab_count:
+            options.insert(0, {
+                'value': ExpertFilter.DAB_DATABASE,
+                'label': ExpertFilter.DAB_DATABASE,
+                'count': dab_count,
+            })
+
+        return Response(options)
+
+    def create(self, request, *args, **kwargs):
+        """Create an expert, rolling back entirely if an attached CV fails.
+
+        The quick-upload flow used to POST the expert and then PATCH the CV,
+        which left an expert with no CV whenever the upload failed. Wrapping
+        this in a transaction means a failed CV save takes the expert with it.
+        """
+        with transaction.atomic():
+            return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(registered_by=self.request.user)
@@ -283,7 +450,9 @@ class ExpertViewSet(viewsets.ModelViewSet):
             pass
         else:
             raise PermissionDenied("You do not have permission to update this expert.")
-        return super().update(request, *args, **kwargs)
+        # Atomic so a failed CV upload does not leave other field edits applied.
+        with transaction.atomic():
+            return super().update(request, *args, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -296,7 +465,8 @@ class ExpertViewSet(viewsets.ModelViewSet):
             pass
         else:
             raise PermissionDenied("You do not have permission to update this expert.")
-        return super().partial_update(request, *args, **kwargs)
+        with transaction.atomic():
+            return super().partial_update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -341,29 +511,48 @@ class ExpertViewSet(viewsets.ModelViewSet):
         return ExpertDynamicSerializer  # dynamic for list & retrieve
 
     def get_queryset(self):
+        """Browse/search visibility: every expert, for both roles.
+
+        Company users see the whole database here (list, retrieve, search,
+        completeness-summary) so they can find experts registered by other
+        companies too. What they get back for someone else's expert is still
+        cut down to name/position/experience by ExpertDynamicSerializer,
+        which routes non-owned rows through PublicExpertSerializer - this
+        method only controls which rows are visible at all, not which fields.
+
+        Dashboard KPIs (stats, this-week, this-month, incomplete-cv) must NOT
+        widen the same way - a company's "this week" count should stay their
+        own - so those call _own_queryset() instead of this one.
+        """
         queryset = super().get_queryset()
         user = self.request.user
-        
+
         # Only authenticated users with proper roles can access experts
         if not hasattr(user, 'role') or user.role not in ['admin', 'company']:
             return queryset.none()
-        
+
         # ALWAYS exclude experts with null registered_by (orphaned experts)
         queryset = queryset.exclude(registered_by__isnull=True)
-        
-        # Admin users see all experts (except orphaned ones)
-        if user.role == 'admin':
-            # Admins can see all experts from all companies
-            pass  # No additional filtering needed
-        elif user.role == 'company':
-            # Company users only see experts they registered
-            queryset = queryset.filter(registered_by=user)
-        
+
         key_words = self.request.query_params.get('key_words')
         if key_words:
             keywords = [kw.strip() for kw in key_words.split(',')]
             queryset = queryset.filter(key_words__overlap=keywords)
-        
+
+        # Every serialized expert carries a cv_completeness report, which reads
+        # five related tables. Without this the list view would issue five extra
+        # queries per row.
+        return completeness_queryset(queryset)
+
+    def _own_queryset(self):
+        """Dashboard-KPI visibility: admins see everything, company users see
+        only what they registered. Starts from get_queryset() so it still
+        excludes orphaned experts and honours ?key_words=, then narrows
+        further for company role."""
+        queryset = self.get_queryset()
+        user = self.request.user
+        if getattr(user, 'role', None) == 'company':
+            queryset = queryset.filter(registered_by=user)
         return queryset
 
 
@@ -371,24 +560,111 @@ class ExpertViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def stats(self, request):
         admin_id = request.query_params.get('admin_id')
-        experts = self.get_queryset()
+        experts = self._own_queryset()
 
         if admin_id:
             experts = experts.filter(registered_by_id=admin_id)
+
+        # get_queryset() attaches the completeness prefetch for serialization.
+        # Most of this endpoint only counts rows, and a prefetch on a queryset
+        # that is merely aggregated still costs its extra queries whenever the
+        # result set is materialised. Keep the prefetched queryset for the
+        # completeness summary (which needs the relations) and count on a bare
+        # one.
+        counting = experts.prefetch_related(None).select_related(None)
 
         today = now().date()
         start_of_week = today - timedelta(days=today.weekday())
         start_of_month = today.replace(day=1)
         start_of_year = today.replace(month=1, day=1)
 
+        # ── Previous month, for the month-over-month delta on the home page ──
+        last_day_prev_month = start_of_month - timedelta(days=1)
+        start_of_prev_month = last_day_prev_month.replace(day=1)
+
+        # ── 12-month registration series (oldest → newest) for the trend chart ──
+        monthly_counts = (
+            counting.filter(created_at__date__gte=start_of_month - relativedelta(months=11))
+            .annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(count=Count("id"))
+        )
+        counts_by_month = {
+            row["month"].strftime("%Y-%m"): row["count"]
+            for row in monthly_counts
+            if row["month"]
+        }
+        monthly_registrations = []
+        for offset in range(11, -1, -1):
+            bucket = start_of_month - relativedelta(months=offset)
+            key = bucket.strftime("%Y-%m")
+            monthly_registrations.append({
+                "month": key,
+                "label": bucket.strftime("%b"),
+                "count": counts_by_month.get(key, 0),
+            })
+
+        # ── Experts whose CV has not been refreshed in over a year ──
+        stale_cutoff = today - relativedelta(months=12)
+        # Preview only — five rows of scalar fields, so skip the prefetch and
+        # fetch just the columns the payload below reads.
+        stale_experts = (
+            counting.filter(updated_at__date__lt=stale_cutoff)
+            .only("id", "first_name", "last_name", "expertise_area", "country", "updated_at")
+            .order_by("updated_at")
+        )
+        outdated_preview = [
+            {
+                "id": expert.id,
+                "first_name": expert.first_name,
+                "last_name": expert.last_name,
+                "expertise_area": expert.expertise_area or "",
+                "country": expert.country or "",
+                "updated_at": expert.updated_at,
+                "months_stale": max(
+                    0,
+                    (today.year - expert.updated_at.date().year) * 12
+                    + today.month - expert.updated_at.date().month,
+                ),
+            }
+            for expert in stale_experts[:5]
+        ]
+
+        # ── Expert counters in one pass ──
+        # These were eight separate .count() calls, i.e. eight scans of the
+        # same rows. Conditional aggregates collapse them into a single query
+        # over one scan; the numbers are identical.
+        expert_counts = counting.aggregate(
+            total_experts=Count("id"),
+            registered_today=Count("id", filter=Q(created_at__date=today)),
+            registered_this_week=Count("id", filter=Q(created_at__date__gte=start_of_week)),
+            registered_this_month=Count("id", filter=Q(created_at__date__gte=start_of_month)),
+            registered_this_year=Count("id", filter=Q(created_at__date__gte=start_of_year)),
+            registered_prev_month=Count(
+                "id",
+                filter=Q(
+                    created_at__date__gte=start_of_prev_month,
+                    created_at__date__lt=start_of_month,
+                ),
+            ),
+            # An expert counts as "updated" once it has been touched after creation.
+            updated_count=Count("id", filter=~Q(updated_at__date=F("created_at__date"))),
+            outdated_cv_count=Count("id", filter=Q(updated_at__date__lt=stale_cutoff)),
+        )
+
+        # ── User counters in one pass ──
+        user_counts = User.objects.aggregate(
+            company_users_count=Count("id", filter=Q(role="company")),
+            admin_users_count=Count("id", filter=Q(role="admin")),
+        )
+
         data = {
-            "total_experts": experts.count(),
-            "registered_today": experts.filter(created_at__date=today).count(),
-            "registered_this_week": experts.filter(created_at__date__gte=start_of_week).count(),
-            "registered_this_month": experts.filter(created_at__date__gte=start_of_month).count(),
-            "registered_this_year": experts.filter(created_at__date__gte=start_of_year).count(),
-            "company_users_count": User.objects.filter(role="company").count(),
-            "admin_users_count": User.objects.filter(role="admin").count(),
+            **expert_counts,
+            "outdated_cv_preview": outdated_preview,
+            # Same scorer the search badges use, so the two never disagree.
+            "cv_completeness": summarize_completeness(experts),
+            "monthly_registrations": monthly_registrations,
+            **user_counts,
             "companies_count": User.objects.exclude(company_name__isnull=True).exclude(company_name__exact="").values("company_name").distinct().count(),
             "recent_users": list(
                 User.objects.order_by("-created_at").values(
@@ -403,7 +679,12 @@ class ExpertViewSet(viewsets.ModelViewSet):
         today = now().date()
         start_of_month = today.replace(day=1)
 
-        experts = self.get_queryset().filter(created_at__date__gte=start_of_month)
+        # Explicit ordering: paginating an unordered queryset lets Postgres
+        # return rows in any order per page, so a record can appear twice or
+        # not at all. Newest first also matches what this page is asking for.
+        experts = self._own_queryset().filter(
+            created_at__date__gte=start_of_month
+        ).order_by('-created_at')
 
         page = self.paginate_queryset(experts)
         if page is not None:
@@ -416,8 +697,10 @@ class ExpertViewSet(viewsets.ModelViewSet):
     def experts_this_week(self, request):
         today = now().date()
         start_of_week = today - timedelta(days=today.weekday())
-        
-        experts = self.get_queryset().filter(created_at__date__gte=start_of_week)
+
+        experts = self._own_queryset().filter(
+            created_at__date__gte=start_of_week
+        ).order_by('-created_at')
 
         page = self.paginate_queryset(experts)
         if page is not None:
@@ -426,6 +709,127 @@ class ExpertViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(experts, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated], url_path='incomplete-cv')
+    def incomplete_cv(self, request):
+        """Experts whose CV falls short of the completeness threshold.
+
+        This used to mean "has no CV sections at all", which hid the far more
+        common case: a record with some sections filled and real gaps in the
+        rest. It now uses the same weighted score the rest of the app shows,
+        so this page and the search badges can never disagree.
+
+        `?threshold=` overrides the cut-off (default: anything not complete),
+        and results are ordered emptiest-first so the worst records lead.
+        """
+        try:
+            threshold = float(request.query_params.get('threshold', COMPLETE_AT))
+        except (TypeError, ValueError):
+            threshold = COMPLETE_AT
+
+        scored = [
+            (expert, evaluate_completeness(expert)["percent"])
+            for expert in self._own_queryset()
+        ]
+        experts = [
+            expert
+            for expert, percent in sorted(scored, key=lambda pair: pair[1])
+            if percent < threshold
+        ]
+
+        page = self.paginate_queryset(experts)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(experts, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['post'],
+        permission_classes=[IsAuthenticated],
+        parser_classes=[MultiPartParser, FormParser],
+        url_path='parse-cv'
+    )
+    def parse_cv(self, request):
+        """Parse a CV and return the extracted fields WITHOUT saving anything.
+
+        This backs the quick-upload flow, where the file is dropped first and
+        the operator reviews what was found before a record is created.
+        `upload_cv` still handles the parse-and-save path.
+        """
+        uploaded_file = request.FILES.get("cv_file")
+        if not uploaded_file:
+            return Response({"error": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+
+        suffix = os.path.splitext(uploaded_file.name)[1].lower() or ".docx"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+            for chunk in uploaded_file.chunks():
+                temp_file.write(chunk)
+            temp_path = temp_file.name
+
+        try:
+            if suffix == ".pdf":
+                # PDF carries no table structure PyPDF2 can read, so this
+                # parses on plain text only — personal info, publications,
+                # and countries of work experience. Education/employment/
+                # certifications/research/languages stay empty; the DOCX
+                # path below still gets those from its tables.
+                pdf_text = extract_text(temp_path, filename=uploaded_file.name)
+                if not pdf_text.strip():
+                    raise ValueError("No extractable text in PDF")
+                parsed = parse_full_cv(raw_text=pdf_text)
+            else:
+                parsed = parse_full_cv(docx_path=temp_path)
+        except Exception as e:
+            print(f"Error parsing CV: {e}")
+            return Response(
+                {"error": "Could not read that CV. Check the file and try again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+        expert = parsed.get("expert", {}) or {}
+        detail = parsed.get("personal_detail", {}) or {}
+
+        def as_text(value):
+            if isinstance(value, (list, tuple)):
+                return ", ".join(str(v) for v in value if v)
+            return value or ""
+
+        # Only fields the parser actually produces. It does NOT extract
+        # nationality or years of experience, so those stay for the operator
+        # to fill and the UI flags them as missing.
+        fields = {
+            "first_name": expert.get("first_name") or "",
+            "last_name": expert.get("last_name") or "",
+            "email": expert.get("email") or detail.get("email") or "",
+            "country": expert.get("country") or detail.get("country") or "",
+            "cv_language": expert.get("cv_language") or "",
+            "expertise_area": as_text(expert.get("expertise_area")),
+            "language_skills": expert.get("language_skills") or [],
+            "countries_of_work_experience": as_text(
+                expert.get("countries_of_work_experience")
+            ),
+            "current_position": detail.get("current_position") or "",
+            "phone_number": detail.get("phone_number") or "",
+        }
+        extracted = [k for k, v in fields.items() if v not in (None, "", [])]
+
+        return Response({
+            "fields": fields,
+            "extracted": extracted,
+            "extracted_count": len(extracted),
+            # Counts give the operator a sense of what else is in the file.
+            "counts": {
+                "education": len(parsed.get("education") or []),
+                "work_experience": len(parsed.get("work_experience") or []),
+                "research_experience": len(parsed.get("research_experience") or []),
+            },
+        })
 
     @action(
         detail=False,
@@ -442,7 +846,8 @@ class ExpertViewSet(viewsets.ModelViewSet):
         if not expert_id:
             return Response({"error": "Expert id is required."}, status=status.HTTP_400_BAD_REQUEST)
     
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as temp_file:
+        suffix = os.path.splitext(uploaded_file.name)[1].lower() or ".docx"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             for chunk in uploaded_file.chunks():
                 temp_file.write(chunk)
             temp_path = temp_file.name
@@ -450,15 +855,21 @@ class ExpertViewSet(viewsets.ModelViewSet):
         uploaded_file.seek(0)
 
         try:
-            parsed_data = parse_full_cv(temp_path)
-
+            if suffix == ".pdf":
+                pdf_text = extract_text(temp_path, filename=uploaded_file.name)
+                if not pdf_text.strip():
+                    raise ValueError("No extractable text in PDF")
+                parsed_data = parse_full_cv(raw_text=pdf_text)
+            else:
+                parsed_data = parse_full_cv(docx_path=temp_path)
 
         except Exception as e:
             os.remove(temp_path)
-            print(f"Error parsing CV: {e}") 
+            print(f"Error parsing CV: {e}")
             return Response({"error": f"Failed to parse CV: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
-            os.remove(temp_path)
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
         try:
             with transaction.atomic():
@@ -717,12 +1128,160 @@ class CVBuilderAPIView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class EducationalBackgroundViewSet(viewsets.ModelViewSet):
+class ExpertOwnershipMixin:
+    """Shared write-guard for the nested per-expert viewsets below.
+
+    All writes to an expert's education/experience/expertise/personal-detail
+    records require owning that expert (or being admin) - the parent
+    ExpertViewSet already enforces this for the expert record itself; these
+    child endpoints previously had no such check at all, so any authenticated
+    company user could create/update/delete another company's expert's
+    records by posting to the nested URL directly.
+    """
+
+    def _check_expert_owned(self, expert_pk):
+        user = self.request.user
+        if getattr(user, "role", None) == "admin":
+            return
+        expert = Expert.objects.filter(pk=expert_pk).first()
+        if not expert or expert.registered_by_id != getattr(user, "id", None):
+            raise PermissionDenied("You do not have permission to modify this expert's record.")
+
+    def perform_create(self, serializer):
+        expert_pk = self.kwargs['expert_pk']
+        self._check_expert_owned(expert_pk)
+        serializer.save(expert_id=expert_pk)
+
+    def perform_update(self, serializer):
+        self._check_expert_owned(self.kwargs['expert_pk'])
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._check_expert_owned(self.kwargs['expert_pk'])
+        instance.delete()
+
+
+class AccessRequestViewSet(viewsets.ModelViewSet):
+    """Requests from a company to unlock one expert's contact info + CV.
+
+    Company users: see and create only their own requests, for experts they
+    did not already register (registering an expert already gives full
+    access to it - a request would be pointless). Cannot set price/status
+    themselves; create is the only thing they can do besides read.
+
+    Admins: see every request and act on it via the price/reject/mark_paid
+    actions below, which are the only way status ever changes - there is no
+    generic PATCH-the-status path, so every transition is explicit and
+    auditable (reviewed_by + admin_note).
+    """
+
+    queryset = AccessRequest.objects.select_related('expert', 'requested_by', 'reviewed_by')
+    serializer_class = AccessRequestSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'head', 'options']  # no generic PATCH/PUT/DELETE
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['expert', 'status']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+        if getattr(user, "role", None) == "admin":
+            return queryset
+        return queryset.filter(requested_by=user)
+
+    def perform_create(self, serializer):
+        expert = serializer.validated_data.get('expert')
+        user = self.request.user
+
+        if expert.registered_by_id == user.id:
+            raise serializers.ValidationError(
+                {"expert": "You already have full access to an expert you registered."}
+            )
+
+        existing = AccessRequest.objects.filter(
+            expert=expert, requested_by=user, status__in=['pending', 'priced']
+        ).first()
+        if existing:
+            raise serializers.ValidationError(
+                {"expert": "You already have an open request for this expert."}
+            )
+        if AccessRequest.objects.filter(expert=expert, requested_by=user, status='paid').exists():
+            raise serializers.ValidationError(
+                {"expert": "You already have paid access to this expert."}
+            )
+
+        serializer.save(requested_by=user)
+
+    def _require_admin(self):
+        if getattr(self.request.user, "role", None) != "admin":
+            raise PermissionDenied("Only an admin can act on access requests.")
+
+    @action(detail=True, methods=['post'])
+    def price(self, request, pk=None):
+        """Admin sets a price, moving pending → priced."""
+        self._require_admin()
+        access_request = self.get_object()
+        if access_request.status not in ('pending', 'priced'):
+            return Response(
+                {"detail": f"Cannot price a request that is already {access_request.status}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        price_value = request.data.get('price')
+        try:
+            price_value = float(price_value)
+            if price_value <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return Response({"price": ["A positive price is required."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        access_request.price = price_value
+        access_request.status = 'priced'
+        access_request.reviewed_by = request.user
+        access_request.admin_note = request.data.get('admin_note', access_request.admin_note)
+        access_request.save()
+        return Response(AccessRequestSerializer(access_request, context={"request": request}).data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Admin declines the request. Requester may file a new one later."""
+        self._require_admin()
+        access_request = self.get_object()
+        if access_request.status == 'paid':
+            return Response(
+                {"detail": "Cannot reject a request that has already been paid."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        access_request.status = 'rejected'
+        access_request.reviewed_by = request.user
+        access_request.admin_note = request.data.get('admin_note', access_request.admin_note)
+        access_request.save()
+        return Response(AccessRequestSerializer(access_request, context={"request": request}).data)
+
+    @action(detail=True, methods=['post'], url_path='mark-paid')
+    def mark_paid(self, request, pk=None):
+        """Admin confirms an offline/manual payment. Grants access."""
+        self._require_admin()
+        access_request = self.get_object()
+        if access_request.status != 'priced':
+            return Response(
+                {"detail": "Only a priced request can be marked paid."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        access_request.status = 'paid'
+        access_request.paid_at = now()
+        access_request.reviewed_by = request.user
+        access_request.save()
+        return Response(AccessRequestSerializer(access_request, context={"request": request}).data)
+
+
+class EducationalBackgroundViewSet(ExpertOwnershipMixin, viewsets.ModelViewSet):
     queryset = EducationalBackground.objects.all()
     serializer_class = EducationalBackgroundSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = LargeSizePagination
-
 
     def get_queryset(self):
         expert_pk = self.kwargs.get('expert_pk')
@@ -730,11 +1289,7 @@ class EducationalBackgroundViewSet(viewsets.ModelViewSet):
             return EducationalBackground.objects.none()
         return EducationalBackground.objects.filter(expert_id=expert_pk)
 
-    def perform_create(self, serializer):
-        expert = Expert.objects.get(pk=self.kwargs['expert_pk'])
-        serializer.save(expert=expert)
-
-class WorkExperienceViewSet(viewsets.ModelViewSet):
+class WorkExperienceViewSet(ExpertOwnershipMixin, viewsets.ModelViewSet):
     queryset = WorkExperience.objects.all()
     serializer_class = WorkExperienceSerializer
     permission_classes = [IsAuthenticated]
@@ -746,27 +1301,26 @@ class WorkExperienceViewSet(viewsets.ModelViewSet):
             return WorkExperience.objects.none()
         return WorkExperience.objects.filter(expert_id=expert_pk)
 
-
-    def perform_create(self, serializer):
-        expert = Expert.objects.get(pk=self.kwargs['expert_pk'])
-        serializer.save(expert=expert)
-
-class PersonalDetailViewSet(viewsets.ModelViewSet):
+class PersonalDetailViewSet(ExpertOwnershipMixin, viewsets.ModelViewSet):
     queryset = PersonalDetail.objects.all()
     serializer_class = PersonalDetailSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        """Personal detail carries phone + date of birth, unlike the other
+        nested resources - so unlike them, this one is also locked for READS,
+        not just writes: a company user can only ever fetch this for an
+        expert they registered (or as admin)."""
         expert_pk = self.kwargs.get('expert_pk')
         if expert_pk is None:
             return PersonalDetail.objects.none()
-        return PersonalDetail.objects.filter(expert_id=expert_pk)
+        queryset = PersonalDetail.objects.filter(expert_id=expert_pk)
+        user = self.request.user
+        if getattr(user, "role", None) != "admin":
+            queryset = queryset.filter(expert__registered_by_id=getattr(user, "id", None))
+        return queryset
 
-    def perform_create(self, serializer):
-        expert = Expert.objects.get(pk=self.kwargs['expert_pk'])
-        serializer.save(expert=expert)
-
-class ResearchExperienceViewSet(viewsets.ModelViewSet):
+class ResearchExperienceViewSet(ExpertOwnershipMixin, viewsets.ModelViewSet):
     queryset = ResearchExperience.objects.all()
     serializer_class = ResearchExperienceSerializer
     permission_classes = [IsAuthenticated]
@@ -778,23 +1332,16 @@ class ResearchExperienceViewSet(viewsets.ModelViewSet):
             return ResearchExperience.objects.none()
         return ResearchExperience.objects.filter(expert_id=expert_pk)
 
-    def perform_create(self, serializer):
-        expert = Expert.objects.get(pk=self.kwargs['expert_pk'])
-        serializer.save(expert=expert)
-
-class ExpertiseViewSet(viewsets.ModelViewSet):
+class ExpertiseViewSet(ExpertOwnershipMixin, viewsets.ModelViewSet):
     queryset = Expertise.objects.all()
     serializer_class = ExpertiseSerializer
     permission_classes = [IsAuthenticated]
+
     def get_queryset(self):
         expert_pk = self.kwargs.get('expert_pk')
         if expert_pk is None:
             return Expertise.objects.none()
         return Expertise.objects.filter(expert_id=expert_pk)
-
-    def perform_create(self, serializer):
-        expert = Expert.objects.get(pk=self.kwargs['expert_pk'])
-        serializer.save(expert=expert)
 
 class ExpertSearchView(APIView):
     permission_classes = [IsAuthenticated]
@@ -815,7 +1362,64 @@ class ExpertSearchView(APIView):
         if 'key_words' in data and isinstance(data['key_words'], list) and data['key_words']:
             queryset = queryset.filter(key_words__overlap=data['key_words'])
 
-        queryset = queryset.distinct()
-        
-        serializer = ExpertSerializer(queryset, many=True)
+        # ExpertSerializer walks five related tables per row (work, education,
+        # research, expertise, personal detail) plus the completeness report.
+        # Without the prefetch this issued a query per relation per result.
+        queryset = completeness_queryset(queryset.distinct())
+
+        serializer = ExpertSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
+
+class PublicLandingIndexThrottle(AnonRateThrottle):
+    """Dedicated, tighter budget for the unauthenticated landing endpoint."""
+    scope = 'landing_index'
+
+
+class PublicLandingIndexView(APIView):
+    """Aggregate counts + anonymised teaser rows for the public landing page.
+
+    This is the ONLY expert endpoint reachable without authentication, so it
+    returns no personally identifying data — see LandingIndexTeaserSerializer.
+    Response shape:
+
+        {
+          "totals":  {"experts": int, "countries": int, "sectors": int},
+          "samples": [{"code", "sector", "country", "seniority"}, ...]
+        }
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []          # never touch auth headers here
+    throttle_classes = [PublicLandingIndexThrottle]
+
+    SAMPLE_SIZE = 24
+
+    def get(self, request):
+        visible = Expert.objects.filter(is_deleted=False)
+
+        countries = (
+            visible.exclude(country__exact="")
+                   .values_list("country", flat=True)
+                   .distinct()
+                   .count()
+        )
+        sectors = (
+            visible.exclude(expertise_area__isnull=True)
+                   .exclude(expertise_area__exact="")
+                   .values_list("expertise_area", flat=True)
+                   .distinct()
+                   .count()
+        )
+
+        # newest first so the strip feels live, capped so the public page
+        # can never be used to enumerate the database
+        samples = visible.order_by("-created_at")[: self.SAMPLE_SIZE]
+
+        return Response({
+            "totals": {
+                "experts": visible.count(),
+                "countries": countries,
+                "sectors": sectors,
+            },
+            "samples": LandingIndexTeaserSerializer(samples, many=True).data,
+        })

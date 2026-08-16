@@ -231,7 +231,7 @@ export function RecentActivityTable({ experts }) {
               variant="ghost"
               size="sm"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="hover:bg-[var(--color-primary)] text-[var(--color-primary)] shadow-sm"
+              className="hover:bg-[var(--color-primary)] hover:text-white text-[var(--color-primary)] shadow-sm"
             >
               <Filter className="w-5 h-5 mr-2" />
               Filter

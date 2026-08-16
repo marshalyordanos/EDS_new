@@ -24,10 +24,13 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         return [IsContentManagerOrAdmin()]
 
     def get_queryset(self):
+        # select_related('author'): both serializers expose author_name, which
+        # reads through the FK, so without this every post in a listing costs
+        # an extra query for its author.
         user = self.request.user
         if not user or not user.is_authenticated or user.role not in ('content_manager', 'admin'):
-            return BlogPost.objects.filter(status='published')
-        return BlogPost.objects.all()
+            return BlogPost.objects.filter(status='published').select_related('author')
+        return BlogPost.objects.select_related('author')
 
     def get_serializer_class(self):
         if self.action == 'list':

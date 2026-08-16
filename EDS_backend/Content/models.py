@@ -1,7 +1,22 @@
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 from django.db import models
 from django.utils.text import slugify
 from cloudinary_storage.storage import MediaCloudinaryStorage
 from Expert_Registration.models import User
+
+
+def content_image_storage():
+    """Storage backend for blog covers and testimonial photos.
+
+    Cloudinary in production; local disk when USE_CLOUDINARY is off, so local
+    dev works without Cloudinary credentials. Mirrors
+    Expert_Registration.models.cv_storage - referenced by name here too, so
+    migrations serialize the callable rather than a storage instance.
+    """
+    if getattr(settings, 'USE_CLOUDINARY', True):
+        return MediaCloudinaryStorage()
+    return FileSystemStorage()
 
 
 class BlogPost(models.Model):
@@ -15,7 +30,7 @@ class BlogPost(models.Model):
     body = models.TextField()
     cover_image = models.ImageField(
         upload_to='blog/covers/',
-        storage=MediaCloudinaryStorage(),
+        storage=content_image_storage,
         blank=True,
         null=True,
     )
@@ -32,6 +47,12 @@ class BlogPost(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        # The public blog list is always "published, newest first"; a composite
+        # index serves the filter and the sort in one scan.
+        indexes = [
+            models.Index(fields=['status', '-created_at'], name='blog_status_created_idx'),
+        ]
+
     @property
     def author_name(self):
         if self.author:
@@ -63,7 +84,7 @@ class Testimonial(models.Model):
     quote = models.TextField()
     photo = models.ImageField(
         upload_to='testimonials/',
-        storage=MediaCloudinaryStorage(),
+        storage=content_image_storage,
         blank=True,
         null=True,
     )
@@ -72,6 +93,10 @@ class Testimonial(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        # Public list is "active, newest first" — same shape as BlogPost.
+        indexes = [
+            models.Index(fields=['is_active', '-created_at'], name='testimonial_active_idx'),
+        ]
 
     def __str__(self):
         return f"{self.name} — {self.organization}"

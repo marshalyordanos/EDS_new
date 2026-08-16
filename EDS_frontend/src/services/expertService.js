@@ -51,6 +51,29 @@ export const getExpertsRegisteredThisMonth = async (page = 1) => {
   }
 };
 
+/**
+ * Experts whose weighted CV completeness score falls below the "complete"
+ * threshold, emptiest first. Each row carries a `cv_completeness` report
+ * naming exactly which sections and fields are still missing.
+ *
+ * `threshold` overrides the cut-off percentage (default: the backend's
+ * COMPLETE_AT), for narrowing the page to only the worst records.
+ */
+export const getExpertsWithIncompleteCv = async (page = 1, threshold) => {
+  try {
+    const response = await apiClient.get("/api/v1/experts/incomplete-cv/", {
+      params: threshold == null ? { page } : { page, threshold },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Failed to fetch experts with incomplete CVs:",
+      error.response ? error.response.data : error.message
+    );
+    throw error;
+  }
+};
+
 export const getExpertsWithOutdatedCVs = async () => {
   try {
     const response = await apiClient.get("/api/v1/experts/outdated-cvs");
@@ -84,6 +107,48 @@ export const createExpert = async (personalInfo) => {
   } catch (error) {
     console.error(
       "Failed to create expert:",
+      error.response ? error.response.data : error.message
+    );
+    throw error;
+  }
+};
+
+/* Create an expert and attach the CV in ONE request.
+   The backend wraps this in a transaction, so a failed CV upload rolls the
+   expert back too - no more expert rows left behind without a CV. */
+export const createExpertWithCv = async (personalInfo, cvFile) => {
+  const formData = new FormData();
+  Object.entries(personalInfo).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) formData.append(key, value);
+  });
+  formData.append("cv_file", cvFile);
+
+  try {
+    const response = await apiClient.post("/api/v1/experts/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Failed to create expert with CV:",
+      error.response ? error.response.data : error.message
+    );
+    throw error;
+  }
+};
+
+/* Parse a CV and get the extracted fields back WITHOUT creating a record.
+   Backs the quick-upload flow, where the file is read first and the
+   operator reviews what was found before anything is saved. */
+export const parseCv = async (cvFormData) => {
+  try {
+    const response = await apiClient.post(`/api/v1/experts/parse-cv/`, cvFormData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Failed to parse CV:",
       error.response ? error.response.data : error.message
     );
     throw error;
@@ -157,6 +222,29 @@ export const updateExpert = async (expertId, expertData) => {
     throw error;
   }
 };
+/* Upload or replace an expert's CV file. Backed by the same atomic PATCH as
+   updateExpert - if the storage write fails, nothing about the expert
+   record changes either. */
+export const updateExpertCv = async (expertId, cvFile) => {
+  const formData = new FormData();
+  formData.append("cv_file", cvFile);
+
+  try {
+    const response = await apiClient.patch(
+      `/api/v1/experts/${expertId}/`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Failed to upload CV for expert ${expertId}:`,
+      error.response ? error.response.data : error.message
+    );
+    throw error;
+  }
+};
+
 export const deleteExpert = async (expertId) => {
   try {
     const response = await apiClient.delete(`/api/v1/experts/${expertId}/`);

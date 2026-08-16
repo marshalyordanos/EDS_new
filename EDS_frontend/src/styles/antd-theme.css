@@ -88,26 +88,50 @@
   color: var(--theme-text-primary);
 }
 
-[data-theme="dark"] .ant-input {
-  background-color: var(--theme-bg-tertiary);
-  border-color: var(--theme-border-medium);
-  color: var(--theme-text-primary);
+/* Inputs sit on the warm console surface, not the blue-grey --theme-bg-tertiary
+   (#1f2937, a slate tone). Using --con-surface-2 keeps text fields, selects,
+   number inputs, and date pickers the same neutral black as each other. */
+[data-theme="dark"] .ant-input,
+[data-theme="dark"] .ant-input-affix-wrapper,
+[data-theme="dark"] .ant-input-number,
+[data-theme="dark"] .ant-input-number-input,
+[data-theme="dark"] .ant-picker,
+[data-theme="dark"] textarea.ant-input {
+  background-color: var(--con-surface-2);
+  border-color: var(--con-line-strong);
+  color: var(--con-ink);
 }
 
-[data-theme="dark"] .ant-input:hover {
+[data-theme="dark"] .ant-input:hover,
+[data-theme="dark"] .ant-input-affix-wrapper:hover,
+[data-theme="dark"] .ant-input-number:hover,
+[data-theme="dark"] .ant-picker:hover {
   border-color: var(--color-primary);
 }
 
-[data-theme="dark"] .ant-input:focus {
+[data-theme="dark"] .ant-input:focus,
+[data-theme="dark"] .ant-input-affix-wrapper-focused,
+[data-theme="dark"] .ant-input-number-focused,
+[data-theme="dark"] .ant-picker-focused {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-medium);
 }
 
+/* ── Date picker ── */
+[data-theme="dark"] .ant-picker-input > input {
+  color: var(--con-ink);
+}
+
+[data-theme="dark"] .ant-picker-panel-container {
+  background-color: var(--con-surface);
+  border: 1px solid var(--con-line);
+}
+
 /* ── Select ── */
 [data-theme="dark"] .ant-select .ant-select-selector {
-  background-color: var(--theme-bg-tertiary);
-  border-color: var(--theme-border-medium);
-  color: var(--theme-text-primary);
+  background-color: var(--con-surface-2);
+  border-color: var(--con-line-strong);
+  color: var(--con-ink);
 }
 
 [data-theme="dark"] .ant-select .ant-select-selection-item {
@@ -128,16 +152,16 @@
 }
 
 [data-theme="dark"] .ant-select-item-option-selected {
-  background-color: var(--theme-bg-tertiary);
+  background-color: var(--con-surface-2);
 }
 
 [data-theme="dark"] .ant-select-item:hover {
-  background-color: var(--theme-bg-tertiary);
+  background-color: var(--con-surface-2);
 }
 
 /* ── Tag ── */
 [data-theme="dark"] .ant-tag {
-  background-color: var(--theme-bg-tertiary);
+  background-color: var(--con-surface-2);
   border-color: var(--theme-border-medium);
   color: var(--theme-text-primary);
 }
@@ -150,7 +174,7 @@
 
 /* ── Upload ── */
 [data-theme="dark"] .ant-upload {
-  background-color: var(--theme-bg-tertiary);
+  background-color: var(--con-surface-2);
   border-color: var(--theme-border-medium);
 }
 
@@ -180,7 +204,7 @@
 
 /* ── Buttons ── */
 [data-theme="dark"] .ant-btn {
-  background-color: var(--theme-bg-tertiary);
+  background-color: var(--con-surface-2);
   border-color: var(--theme-border-medium);
   color: var(--theme-text-primary);
 }
@@ -232,7 +256,7 @@
 }
 
 [data-theme="dark"] .ant-steps .ant-steps-item-wait .ant-steps-item-icon {
-  background-color: var(--theme-bg-tertiary);
+  background-color: var(--con-surface-2);
   border-color: var(--theme-border-medium);
 }
 

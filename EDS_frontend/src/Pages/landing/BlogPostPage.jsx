@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import PublicLayout from "../../layouts/PublicLayout";
 import { getBlogPost } from "../../services/contentService";
 import "../../styles/homepage.css";
+import "../../styles/landing.css";
 
 const formatDate = (dateStr) =>
   new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
@@ -24,7 +25,7 @@ export default function BlogPostPage() {
   }, [slug]);
 
   return (
-    <PublicLayout>
+    <PublicLayout className="ld-root">
       <main style={{ flex: 1, maxWidth: "760px", margin: "0 auto", padding: "64px 24px", width: "100%" }}>
         {/* Back link */}
         <Link

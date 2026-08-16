@@ -8,7 +8,8 @@ from .views import( UserViewSet, ExpertViewSet, LoginView,
                     PersonalDetailViewSet,
                     ResearchExperienceViewSet,
                     ExpertiseViewSet, WorkExperienceViewSet,
-                    ExpertSearchView
+                    ExpertSearchView, PublicLandingIndexView,
+                    AccessRequestViewSet
                     )
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.contrib.auth import views as auth_view
@@ -17,6 +18,7 @@ from django.contrib.auth import views as auth_view
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'experts', ExpertViewSet, basename='expert')
+router.register(r'access-requests', AccessRequestViewSet, basename='access-request')
 
 experts_router = NestedDefaultRouter(router, r'experts', lookup='expert')
 experts_router.register(r'education', EducationalBackgroundViewSet, basename='expert-education')
@@ -40,6 +42,13 @@ urlpatterns = [
     # path('api/v1/experts/register/', ExpertViewSet.as_view({'post': 'create'}), name='expert-register'),
     path('api/v1/experts/<int:expert_id>/build-cv/', CVBuilderAPIView.as_view(), name='build-cv'),
     path('api/v1/experts/search/', ExpertSearchView.as_view(), name='expert-search'),
+
+    # Public, unauthenticated. Anonymised data only — see the view's docstring.
+    path(
+        'api/v1/public/landing-index/',
+        PublicLandingIndexView.as_view(),
+        name='public-landing-index',
+    ),
 
 
 ]

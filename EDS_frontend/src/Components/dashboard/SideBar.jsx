@@ -1,420 +1,222 @@
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
+import { Popover } from "antd";
 import logomarkWhite from "../../assets/logomark-white.svg";
 import fullLogoWhite from "../../assets/full-logo-white.svg";
-import { Popover } from "antd";
 import UserProfileSection from "./UserProfileSection";
 import {
   FiHome,
   FiSearch,
-  FiDatabase,
   FiUserPlus,
   FiUsers,
   FiFileText,
   FiMessageSquare,
   FiChevronDown,
   FiChevronsLeft,
-  FiChevronRight,
   FiChevronsRight,
-  FiBarChart2,
+  FiUpload,
+  FiUnlock,
 } from "react-icons/fi";
+import "../../styles/sidebar.css";
+import "../../styles/console.css";
 
-const SubMenu = ({ items, getNavLinkClass }) => (
-  <ul className="space-y-1">
+/* A single nav row. `count` renders an inline badge; `alert` tints it amber
+   to flag work that is waiting on someone. */
+const NavItem = ({ to, icon, label, isExpanded, end, count, alert }) => (
+  <NavLink to={to} end={end}>
+    {({ isActive }) => (
+      <div className={`con-nav-item${isActive ? " active" : ""}`} title={!isExpanded ? label : undefined}>
+        <span className="con-nav-icon">{icon}</span>
+        <span className="con-nav-text">{label}</span>
+        {count != null && (
+          <span className={`con-nav-count${alert ? " alert" : ""}`}>{count}</span>
+        )}
+      </div>
+    )}
+  </NavLink>
+);
+
+const SubNav = ({ items, itemClass = "con-subnav-item" }) => (
+  <ul className="con-subnav">
     {items.map((item) => (
       <li key={item.to}>
         <NavLink to={item.to} end={item.end}>
-          {({ isActive }) => {
-            const linkProps = getNavLinkClass({ isActive });
-            return (
-              <div
-                className={`${linkProps.className} w-full `}
-                style={linkProps.style}
-              >
-                {item.label}
-              </div>
-            );
-          }}
+          {({ isActive }) => (
+            <span className={`${itemClass}${isActive ? " active" : ""}`}>{item.label}</span>
+          )}
         </NavLink>
       </li>
     ))}
   </ul>
 );
+
+/* Group heading. Collapsed, the label is replaced by a hairline so the
+   grouping still reads without text. */
+const GroupLabel = ({ children, isExpanded }) =>
+  isExpanded ? <div className="con-nav-label">{children}</div> : <div className="con-nav-rule" />;
+
 const SideBar = ({ isExpanded, setIsExpanded, token }) => {
-  const fullLogoSrc = fullLogoWhite;
-  const logomarkSrc = logomarkWhite;
-  const databaseMenuItems = [
-    { to: "/dashboard/all", label: "All Experts", end: true },
-    { to: "/dashboard/experts/this-week", label: "This Week" },
-    { to: "/dashboard/experts/this-month", label: "This Month" },
-  ];
-  const registerMenuItems = [
-    { to: "/dashboard/register/quick-upload", label: "Quick Upload" },
-    { to: "/dashboard/register/build-cv", label: "Build CV" },
-  ];
-  const [isDatabaseMenuOpen, setDatabaseMenuOpen] = useState(false);
   const [isRegisterMenuOpen, setRegisterMenuOpen] = useState(false);
+
   const firstName = localStorage.getItem("userFirstName");
   const lastName = localStorage.getItem("userLastName");
   const userEmail = localStorage.getItem("userEmail");
   const userRole = localStorage.getItem("userRole");
   const fullName = [firstName, lastName].filter(Boolean).join(" ") || "User";
 
-  const getNavLinkClass = ({ isActive }) => {
-    const commonClasses = "flex items-center justify-between p-3 rounded-lg";
+  const isAdmin = userRole === "admin";
+  const isContentManager = userRole === "content_manager";
 
-    if (isActive) {
-      return {
-        className: `${commonClasses} font-semibold text-white`,
-        style: {
-          backgroundColor: "var(--color-primary)",
-        },
-      };
-    } else {
-      return {
-        className: `${commonClasses} text-[var(--theme-text-muted)] hover:bg-white/10`,
-      };
-    }
-  };
+  const registerMenuItems = [
+    { to: "/dashboard/register/quick-upload", label: "Quick Upload" },
+    { to: "/dashboard/register/build-cv", label: "Build CV" },
+  ];
 
-  const getSubMenuNavLinkClass = ({ isActive }) => {
-    const commonClasses =
-      "flex items-center justify-between p-2 rounded-lg text-base";
-    if (isActive) {
-      return {
-        className: `${commonClasses} font-semibold text-white`,
-        style: {
-          backgroundColor: "var(--color-primary)",
-        },
-      };
-    } else {
-      return {
-        className: `${commonClasses} text-[var(--theme-text-muted)] hover:bg-white/10`,
-      };
-    }
-  };
-
-  const getPopoverSubMenuNavLinkClass = ({ isActive }) => {
-    const commonClasses =
-      "flex items-center justify-between p-2 rounded-lg text-base";
-    if (isActive) {
-      return {
-        className: `${commonClasses} font-semibold  text-white`,
-        style: {
-          backgroundColor: "var(--color-primary)",
-        },
-      };
-    } else {
-      return {
-        className: `${commonClasses} text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]`,
-      };
-    }
-  };
+  /* Collapsible group: inline sub-nav when expanded, hover popover when not. */
+  const CollapsibleGroup = ({ icon, label, items, isOpen, setOpen }) =>
+    isExpanded ? (
+      <>
+        <button onClick={() => setOpen(!isOpen)} className="con-nav-item" style={{ width: "100%" }}>
+          <span className="con-nav-icon">{icon}</span>
+          <span className="con-nav-text">{label}</span>
+          <FiChevronDown
+            className="con-nav-chevron"
+            style={{ transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
+          />
+        </button>
+        {isOpen && <SubNav items={items} />}
+      </>
+    ) : (
+      <Popover
+        placement="rightTop"
+        trigger="hover"
+        className="custom-popover"
+        content={<SubNav items={items} itemClass="con-popover-item" />}
+      >
+        <div className="con-nav-item" title={label}>
+          <span className="con-nav-icon">{icon}</span>
+        </div>
+      </Popover>
+    );
 
   return (
     <aside
-      className={`custom-sidebar h-full p-6 flex flex-col shadow-lg transition-all duration-300 ${
-        isExpanded ? "w-64" : "w-24"
+      className={`con-rail${isExpanded ? "" : " collapsed"} transition-all duration-300 ${
+        isExpanded ? "w-64" : "w-20"
       }`}
-      style={{
-        backgroundColor: "var(--sidebar-bg)",
-        borderRight: "1px solid var(--theme-border-light)",
-      }}
     >
-      <div className="flex items-center justify-between mb-10">
-        <div className="flex items-center justify-center">
-          {isExpanded ? (
-            <img
-              src={fullLogoSrc}
-              alt="AfriDATAi"
-              className="h-12 w-auto transition-all duration-300"
-            />
-          ) : (
-            <img
-              src={logomarkSrc}
-              alt="AfriDATAi"
-              className="h-12 w-12 transition-all duration-300"
-            />
-          )}
-        </div>
-        <button
-          onClick={() => setIsExpanded && setIsExpanded(!isExpanded)}
-          className="p-1.5 rounded-lg hover:bg-white/20"
-        >
-          {isExpanded ? (
-            <FiChevronsLeft className="text-[var(--theme-text-muted)]" />
-          ) : (
-            <FiChevronsRight className="text-[var(--theme-text-muted)]" />
-          )}
-        </button>
+      {/* ── Brand ── */}
+      <div className="con-rail-brand">
+        <img
+          src={isExpanded ? fullLogoWhite : logomarkWhite}
+          alt="AfriDATAi"
+          className={`con-rail-logo${isExpanded ? "" : " mark"}`}
+        />
+        {setIsExpanded && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="con-collapse-btn"
+            aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            {isExpanded ? <FiChevronsLeft size={13} /> : <FiChevronsRight size={13} />}
+          </button>
+        )}
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="flex-grow overflow-y-auto">
-        <ul className="space-y-2">
-          {/* Menu Item: Home — admin and company only */}
-          {userRole !== "content_manager" && (
+      {/* ── Navigation ── */}
+      <nav className="con-rail-nav">
+        {/* Overview */}
+        {!isContentManager && (
+          <ul className="con-nav-group">
+            <GroupLabel isExpanded={isExpanded}>Overview</GroupLabel>
             <li>
-              <NavLink
-                to={
-                  userRole === "admin"
-                    ? "/dashboard/home"
-                    : "/dashboard/company"
-                }
-              >
-                {({ isActive }) => (
-                  <div {...getNavLinkClass({ isActive })}>
-                    <div className="flex items-center">
-                      <FiHome className="mr-3 text-2xl" />
-                      <span
-                        className={`overflow-hidden text-lg font-semibold transition-all ${!isExpanded && "w-0"}`}
-                      >
-                        Home
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </NavLink>
+              <NavItem
+                to={isAdmin ? "/dashboard/home" : "/dashboard/company"}
+                icon={<FiHome />}
+                label="Home"
+                isExpanded={isExpanded}
+                end
+              />
             </li>
-          )}
-
-          {/* Menu Item: Search — admin and company only */}
-          {userRole !== "content_manager" && (
             <li>
-              <NavLink to="/dashboard/search">
-                {({ isActive }) => (
-                  <div {...getNavLinkClass({ isActive })}>
-                    <div className="flex items-center">
-                      <FiSearch className="mr-3 text-2xl" />
-                      <span
-                        className={`overflow-hidden font-semibold text-lg transition-all ${!isExpanded && "w-0"}`}
-                      >
-                        Search
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </NavLink>
+              <NavItem
+                to="/dashboard/search"
+                icon={<FiSearch />}
+                label="Search"
+                isExpanded={isExpanded}
+              />
             </li>
-          )}
+            {/* Analytics moved onto the dashboard home pages. */}
+          </ul>
+        )}
 
-          {/* Menu Item: My Analytics — admin and company only */}
-          {userRole !== "content_manager" && (
+        {/* Register */}
+        {!isContentManager && (
+          <ul className="con-nav-group">
+            <GroupLabel isExpanded={isExpanded}>Register</GroupLabel>
             <li>
-              <NavLink to="/dashboard/my-analytics">
-                {({ isActive }) => (
-                  <div {...getNavLinkClass({ isActive })}>
-                    <div className="flex items-center">
-                      <FiBarChart2 className="mr-3 text-2xl" />
-                      <span
-                        className={`overflow-hidden font-semibold text-lg transition-all ${!isExpanded && "w-0"}`}
-                      >
-                        My Analytics
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </NavLink>
+              <CollapsibleGroup
+                icon={<FiUpload />}
+                label="Register"
+                items={registerMenuItems}
+                isOpen={isRegisterMenuOpen}
+                setOpen={setRegisterMenuOpen}
+              />
             </li>
-          )}
+          </ul>
+        )}
 
-          {/* System Analytics - Only for System Admins */}
-          {userRole === "admin" && (
+        {/* Administration */}
+        {(isAdmin || isContentManager) && (
+          <ul className="con-nav-group">
+            <GroupLabel isExpanded={isExpanded}>Administration</GroupLabel>
+            {isAdmin && (
+              <li>
+                <NavItem
+                  to="/dashboard/users"
+                  icon={<FiUsers />}
+                  label="Manage Users"
+                  isExpanded={isExpanded}
+                />
+              </li>
+            )}
             <li>
-              <NavLink to="/dashboard/analytics">
-                {({ isActive }) => (
-                  <div {...getNavLinkClass({ isActive })}>
-                    <div className="flex items-center">
-                      <FiBarChart2 className="mr-3 text-2xl" />
-                      <span
-                        className={`overflow-hidden font-semibold 
-                          text-lg transition-all ${!isExpanded && "w-0"}`}
-                      >
-                        Full System Analytics
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </NavLink>
+              <NavItem
+                to="/dashboard/content/blog"
+                icon={<FiFileText />}
+                label="Blog Posts"
+                isExpanded={isExpanded}
+              />
             </li>
-          )}
-
-          {/* Menu Item: Create User — admin only */}
-          {userRole === "admin" && (
             <li>
-              <NavLink to="/dashboard/CreateAdmin">
-                {({ isActive }) => (
-                  <div {...getNavLinkClass({ isActive })}>
-                    <div className="flex items-center">
-                      <FiUsers className="mr-3 text-2xl" />
-                      <span
-                        className={`overflow-hidden font-semibold text-lg transition-all ${!isExpanded && "w-0"}`}
-                      >
-                        Create User
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </NavLink>
+              <NavItem
+                to="/dashboard/content/testimonials"
+                icon={<FiMessageSquare />}
+                label="Testimonials"
+                isExpanded={isExpanded}
+              />
             </li>
-          )}
-
-          {/* Blog Posts — content_manager and admin */}
-          {(userRole === "admin" || userRole === "content_manager") && (
-            <li>
-              <NavLink to="/dashboard/content/blog">
-                {({ isActive }) => (
-                  <div {...getNavLinkClass({ isActive })}>
-                    <div className="flex items-center">
-                      <FiFileText className="mr-3 text-2xl" />
-                      <span
-                        className={`overflow-hidden font-semibold text-lg transition-all ${!isExpanded && "w-0"}`}
-                      >
-                        Blog Posts
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </NavLink>
-            </li>
-          )}
-
-          {/* Testimonials — content_manager and admin */}
-          {(userRole === "admin" || userRole === "content_manager") && (
-            <li>
-              <NavLink to="/dashboard/content/testimonials">
-                {({ isActive }) => (
-                  <div {...getNavLinkClass({ isActive })}>
-                    <div className="flex items-center">
-                      <FiMessageSquare className="mr-3 text-2xl" />
-                      <span
-                        className={`overflow-hidden font-semibold text-lg transition-all ${!isExpanded && "w-0"}`}
-                      >
-                        Testimonials
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </NavLink>
-            </li>
-          )}
-
-          {/* --- MANAGE DATABASE SECTION --- Only for System Admins */}
-          {userRole === "admin" && (
-            <li>
-              {isExpanded ? (
-                <>
-                  <button
-                    onClick={() => setDatabaseMenuOpen(!isDatabaseMenuOpen)}
-                    className="w-full flex items-center justify-between p-3 text-[var(--theme-text-muted)] rounded-lg hover:bg-white/10 focus:outline-none"
-                  >
-                    <div className="flex items-center">
-                      <FiDatabase className="mr-2  text-2xl text-[var(--theme-text-muted)]" />
-                      <span className="font-semibold text-lg text-[var(--theme-text-muted)]">
-                        Manage Database
-                      </span>
-                    </div>
-                    {isDatabaseMenuOpen ? (
-                      <FiChevronDown className="text-[var(--theme-text-muted)]" />
-                    ) : (
-                      <FiChevronRight className="text-[var(--theme-text-muted)]" />
-                    )}
-                  </button>
-                  {isDatabaseMenuOpen && (
-                    <div className="pl-6 mt-1">
-                      <SubMenu
-                        items={databaseMenuItems}
-                        getNavLinkClass={getSubMenuNavLinkClass}
-                      />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <Popover
-                  placement="rightTop"
-                  trigger="hover"
-                  className="custom-popover"
-                  content={
-                    <SubMenu
-                      items={databaseMenuItems}
-                      getNavLinkClass={getPopoverSubMenuNavLinkClass}
-                    />
-                  }
-                >
-                  <div {...getNavLinkClass({ isActive: false })}>
-                    <FiDatabase className="text-2xl" />
-                  </div>
-                </Popover>
-              )}
-            </li>
-          )}
-
-          {/* Menu Item: Register — admin and company only */}
-          {userRole !== "content_manager" && (
-            <li>
-              {isExpanded ? (
-                <>
-                  <button
-                    onClick={() => setRegisterMenuOpen(!isRegisterMenuOpen)}
-                    className="w-full flex items-center justify-between p-3 text-[var(--theme-text-muted)] rounded-lg hover:bg-white/10 focus:outline-none"
-                  >
-                    <div className="flex items-center">
-                      <FiUserPlus className="mr-3 text-2xl text-[var(--theme-text-muted)]" />
-                      <span className="font-semibold text-lg text-[var(--theme-text-muted)]">
-                        Register
-                      </span>
-                    </div>
-                    {isRegisterMenuOpen ? (
-                      <FiChevronDown className="text-[var(--theme-text-muted)]" />
-                    ) : (
-                      <FiChevronRight className="text-[var(--theme-text-muted)]" />
-                    )}
-                  </button>
-                  {isRegisterMenuOpen && (
-                    <div className="pl-6 mt-1">
-                      <SubMenu
-                        items={registerMenuItems}
-                        getNavLinkClass={getSubMenuNavLinkClass}
-                      />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <Popover
-                  placement="rightTop"
-                  trigger="hover"
-                  className="custom-popover"
-                  content={
-                    <SubMenu
-                      items={registerMenuItems}
-                      getNavLinkClass={getPopoverSubMenuNavLinkClass}
-                    />
-                  }
-                >
-                  <div {...getNavLinkClass({ isActive: false })}>
-                    <FiUserPlus className="text-2xl" />
-                  </div>
-                </Popover>
-              )}
-            </li>
-          )}
-
-          {/* Menu Item: Admin Panel */}
-          <li>
-            <a
-              href="#"
-              className="flex items-center p-3 text-gray-700 rounded-lg hover:bg-gray-100"
-            ></a>
-          </li>
-        </ul>
+            {isAdmin && (
+              <li>
+                <NavItem
+                  to="/dashboard/access-requests"
+                  icon={<FiUnlock />}
+                  label="Access Requests"
+                  isExpanded={isExpanded}
+                />
+              </li>
+            )}
+          </ul>
+        )}
       </nav>
 
-      {/* User Profile & Logout Section */}
-      <div className="mt-auto pt-4 border-white/20">
+      {/* ── User ── */}
+      <div className="con-rail-foot">
         <UserProfileSection
           token={token}
           fullName={fullName}
           email={userEmail}
+          role={userRole}
           isExpanded={isExpanded}
         />
       </div>

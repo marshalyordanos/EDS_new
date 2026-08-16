@@ -23,10 +23,10 @@ const STORAGE_KEY = "theme";
 const ThemeContext = createContext(null);
 
 const getInitialTheme = () => {
-  if (typeof window === "undefined") return "dark";
+  if (typeof window === "undefined") return "light";
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved && THEMES.includes(saved)) return saved;
-  return "dark";
+  return "light";
 };
 
 export function ThemeProvider({ children }) {

@@ -1,571 +1,837 @@
-import { useState, useEffect, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { App, Modal, Upload } from "antd";
 import {
-  App,
-  Spin,
-  Button,
-  Card,
-  Avatar,
-  Descriptions,
-  Tag,
-  Timeline,
-  Space,
-  Skeleton,
-} from "antd";
-import {
-  UserOutlined,
-  DownloadOutlined,
-  EditOutlined,
-  DeleteOutlined,
-} from "@ant-design/icons";
+  FiDownload,
+  FiEdit2,
+  FiTrash2,
+  FiLock,
+  FiBriefcase,
+  FiSearch,
+  FiBookOpen,
+  FiAward,
+  FiUploadCloud,
+  FiFile,
+  FiX,
+  FiUnlock,
+  FiClock as FiPending,
+  FiCreditCard,
+} from "react-icons/fi";
 import {
   getExpertDetails,
   getNestedResourceList,
   deleteExpert,
+  updateExpertCv,
 } from "../../services/expertService";
-import dayjs from "dayjs";
-import { PDFDownloadLink } from "@react-pdf/renderer";
-import { PDFViewer } from "@react-pdf/renderer";
+import {
+  listAccessRequests,
+  createAccessRequest,
+} from "../../services/accessRequestService";
+import "../../styles/console.css";
 
-import { MyDocument } from "../../Components/ReactPdf";
-import protectedApiClient from "../../api/axios";
-import PageHeader from "../../Components/shared/PageHeader";
+const initialsOf = (first = "", last = "") =>
+  `${first?.[0] || ""}${last?.[0] || ""}`.toUpperCase() || "–";
 
-const ExpertProfilePage = () => {
+const fmtDate = (value, opts = { day: "2-digit", month: "short", year: "numeric" }) => {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-GB", opts);
+};
+
+const fmtMonthYear = (value) => fmtDate(value, { month: "short", year: "numeric" });
+const yearOf = (value) => {
+  const d = value ? new Date(value) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.getFullYear() : null;
+};
+
+const monthsSince = (value) => {
+  if (!value) return null;
+  const then = new Date(value);
+  if (Number.isNaN(then.getTime())) return null;
+  const now = new Date();
+  return (now.getFullYear() - then.getFullYear()) * 12 + (now.getMonth() - then.getMonth());
+};
+
+const splitList = (value) =>
+  (value || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const EVENT_META = {
+  work: { label: "Work", icon: FiBriefcase },
+  research: { label: "Research", icon: FiSearch },
+  education: { label: "Education", icon: FiBookOpen },
+  certification: { label: "Certification", icon: FiAward },
+};
+
+/* Fields hidden from anyone who isn't the registering company or an admin. */
+const Locked = () => (
+  <span className="con-locked">
+    <FiLock size={10} />
+    Hidden
+  </span>
+);
+
+export default function ExpertProfilePage() {
   const { expertId } = useParams();
   const navigate = useNavigate();
   const { message, modal } = App.useApp();
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const [loading, setLoading] = useState(true);
-  const [expertData, setExpertData] = useState(null);
   const [error, setError] = useState(null);
-  const url = encodeURI(expertData?.cv_file);
-  const [role, setRole] = useState("");
+  const [expert, setExpert] = useState(null);
+  const [personal, setPersonal] = useState(null);
+  const [education, setEducation] = useState([]);
+  const [workExperience, setWorkExperience] = useState([]);
+  const [certifications, setCertifications] = useState([]);
+  const [research, setResearch] = useState([]);
+  const [expertise, setExpertise] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [spineFilter, setSpineFilter] = useState("all");
+  const [cvModalOpen, setCvModalOpen] = useState(false);
+  const [cvFile, setCvFile] = useState(null);
+  const [uploadingCv, setUploadingCv] = useState(false);
+  // This company's own AccessRequest for this expert, if any - null means
+  // "not requested yet", not "loading". Only ever fetched for non-owned
+  // experts viewed by a company user (see the effect below).
+  const [accessRequest, setAccessRequest] = useState(null);
+  const [requestingAccess, setRequestingAccess] = useState(false);
 
-  // const cvRef = useRef();
-  // const handleDownloadPdf = () => {
-
-  // };
+  const role = localStorage.getItem("userRole");
 
   useEffect(() => {
-    setRole(localStorage.getItem("userRole"));
-  }, []);
-  console.log("expertData: ", expertData);
+    let cancelled = false;
 
-  useEffect(() => {
-    const fetchAllData = async () => {
+    const load = async () => {
       if (!expertId) return;
       setLoading(true);
       setError(null);
       try {
-        const [
-          expertDetails,
-          personalDetailList,
-          educationList,
-          experienceList,
-          expertiseList,
-          researchList,
-        ] = await Promise.all([
-          getExpertDetails(expertId),
-          getNestedResourceList(expertId, "personal_detail"),
-          getNestedResourceList(expertId, "education"),
-          getNestedResourceList(expertId, "work_experience"),
-          getNestedResourceList(expertId, "expertise"),
-          getNestedResourceList(expertId, "research_experience"),
-        ]);
+        const [details, personalList, eduList, expList, expertiseList, resList] =
+          await Promise.all([
+            getExpertDetails(expertId),
+            getNestedResourceList(expertId, "personal_detail"),
+            getNestedResourceList(expertId, "education"),
+            getNestedResourceList(expertId, "work_experience"),
+            getNestedResourceList(expertId, "expertise"),
+            getNestedResourceList(expertId, "research_experience"),
+          ]);
+        if (cancelled) return;
 
-        console.log({
-          expertDetails,
-          personalDetailList,
-          educationList,
-          experienceList,
-          expertiseList,
-          researchList,
-        });
-
-        const personalDetail = personalDetailList[0] || {};
-        const expertise = expertiseList[0] || {};
-        const workExperiences = experienceList.filter(
-          (exp) => exp.typee === "work_experience"
-        );
-        const certifications = experienceList.filter(
-          (exp) => exp.typee === "certification"
-        );
-
-        const combinedData = {
-          id: expertDetails.id,
-          fullName: expertDetails.first_name
-            ? `${expertDetails.first_name} ${expertDetails.last_name}`
-            : null,
-          email: expertDetails.email ? expertDetails.email : null,
-          cv_file: expertDetails?.cv_file ? expertDetails?.cv_file : null,
-          journals: expertDetails.journals,
-          publications: expertDetails.publications,
-          books: expertDetails.books,
-          expertiseArea: expertDetails.expertise_area,
-          cv_language: expertDetails.cv_language,
-          nationality: expertDetails.nationality,
-          registeredOn: dayjs(expertDetails.created_at).format("DD/MM/YYYY"),
-          avatarUrl: `https://i.pravatar.cc/150?u=${expertDetails.id}`,
-          yours: expertDetails.yours,
-          personal: {
-            ...personalDetail,
-          },
-          skills:
-            expertDetails.expertise_area?.split(",").map((s) => s.trim()) || [],
-          specialization: expertise.specialization || "",
-          education: educationList,
-          work_experience: workExperiences,
-          certifications: certifications,
-          research: researchList,
-        };
-        console.log("combinedData", combinedData);
-
-        setExpertData(combinedData);
+        setExpert(details);
+        setPersonal(personalList[0] || null);
+        setEducation(eduList || []);
+        setWorkExperience((expList || []).filter((e) => e.typee !== "certification"));
+        setCertifications((expList || []).filter((e) => e.typee === "certification"));
+        setExpertise(expertiseList[0] || null);
+        setResearch(resList || []);
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to load expert profile:", err);
-        setError("Could not load expert profile. Please try again later.");
-        message.error("Failed to load data.");
+        // A company user gets a 404 (not 403) for an expert registered by
+        // another company - not found rather than forbidden, so the error
+        // does not confirm that ID belongs to a real record.
+        setError(
+          err.response?.status === 404
+            ? "This expert isn't available to view. It may belong to another company, or the record may not exist."
+            : "Could not load this expert. Refresh to try again."
+        );
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchAllData();
-  }, [expertId, message]);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [expertId]);
+
+  // Only company users viewing an expert they did NOT register need to know
+  // about a request - the owner and admin never see the request button.
+  useEffect(() => {
+    if (!expert || role !== "company" || expert.yours) return;
+    let cancelled = false;
+    listAccessRequests({ expert: expertId })
+      .then((res) => {
+        if (cancelled) return;
+        const results = res.data.results ?? res.data;
+        setAccessRequest(results?.[0] || null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [expert, expertId, role]);
+
+  const sendAccessRequest = async () => {
+    setRequestingAccess(true);
+    try {
+      const res = await createAccessRequest(expertId);
+      setAccessRequest(res.data);
+      message.success("Request sent. An admin will review it and set a price.");
+    } catch (err) {
+      message.error(err.response?.data?.expert?.[0] || "Could not send that request.");
+    } finally {
+      setRequestingAccess(false);
+    }
+  };
+
+  const handleRequestAccess = () => {
+    modal.confirm({
+      title: (
+        <h3 className="font-semibold text-md" style={{ color: "var(--con-ink)" }}>
+          Request CV &amp; contact info for {fullName}?
+        </h3>
+      ),
+      content: (
+        <p style={{ color: "var(--con-ink-2)", marginTop: 8 }}>
+          An admin will review this request and set a price. You&rsquo;ll be able to see
+          their CV, email, and phone number once it&rsquo;s approved and paid for.
+        </p>
+      ),
+      okText: "Send request",
+      cancelText: "Cancel",
+      onOk: sendAccessRequest,
+    });
+  };
+
+  // The registering company, an admin, or a company that PAID for access
+  // (PurchasedExpertSerializer) sees contact details; everyone else sees the
+  // professional record with contact fields redacted. The backend only ever
+  // includes `email` in the payload for those three cases, so its presence
+  // is the one source of truth here rather than re-deriving it client-side.
+  const canSeePrivate = Boolean(expert?.yours) || role === "admin" || "email" in (expert || {});
+
+  const fullName = expert
+    ? [expert.first_name, expert.last_name].filter(Boolean).join(" ") || "Unnamed expert"
+    : "";
+
+  const sectors = useMemo(() => splitList(expert?.expertise_area), [expert]);
+  const regions = useMemo(
+    () => splitList(expert?.countries_of_work_experience),
+    [expert]
+  );
+  const languages = useMemo(() => {
+    const raw = expert?.language_skills;
+    if (!raw) return [];
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed) ? parsed : [];
+  }, [expert]);
+
+  const staleMonths = monthsSince(expert?.updated_at);
+
+  /* Merge work, research, education, and certifications into one
+     chronology. They all carry dates, so splitting them into separate
+     timelines hides the actual shape of a career. */
+  const spine = useMemo(() => {
+    const events = [
+      ...workExperience.map((e) => ({
+        kind: "work",
+        key: `work-${e.id}`,
+        title: e.position_title || "Position",
+        org: e.organization_name,
+        start: e.start_date,
+        end: e.end_date,
+        ongoing: !e.end_date,
+        country: e.country,
+        desc: e.responsibilities || e.description,
+        sortDate: e.start_date || e.end_date,
+      })),
+      ...certifications.map((e) => ({
+        kind: "certification",
+        key: `cert-${e.id}`,
+        title: e.position_title || "Certification",
+        org: e.organization_name ? `Issued by ${e.organization_name}` : null,
+        start: e.start_date,
+        end: null,
+        ongoing: false,
+        desc: e.responsibilities || e.description,
+        sortDate: e.start_date,
+      })),
+      ...research.map((e) => ({
+        kind: "research",
+        key: `res-${e.id}`,
+        title: e.position || "Research",
+        org: e.client ? `Client: ${e.client}` : null,
+        start: e.start_date,
+        end: e.end_date,
+        ongoing: !e.end_date,
+        country: e.country,
+        desc: e.description,
+        sortDate: e.start_date || e.end_date,
+      })),
+      ...education.map((e) => ({
+        kind: "education",
+        key: `edu-${e.id}`,
+        title: [e.education_level, e.field_of_study].filter(Boolean).join(", ") || "Qualification",
+        org: e.institution_name,
+        start: e.year_of_grad,
+        end: null,
+        ongoing: false,
+        desc: null,
+        graduated: true,
+        sortDate: e.year_of_grad,
+      })),
+    ];
+
+    return events
+      .filter((e) => e.sortDate)
+      .sort((a, b) => new Date(b.sortDate) - new Date(a.sortDate));
+  }, [workExperience, certifications, research, education]);
+
+  const filteredSpine =
+    spineFilter === "all" ? spine : spine.filter((e) => e.kind === spineFilter);
+
+  /* Group into year bands so the career's shape reads at a glance. */
+  const spineBands = useMemo(() => {
+    const bands = [];
+    let currentBand = null;
+    filteredSpine.forEach((event) => {
+      const y = yearOf(event.sortDate);
+      const bandStart = y ? Math.floor(y / 5) * 5 : null;
+      const label = bandStart ? `${bandStart} — ${bandStart + 5}` : "Undated";
+      if (!currentBand || currentBand.label !== label) {
+        currentBand = { label, events: [] };
+        bands.push(currentBand);
+      }
+      currentBand.events.push(event);
+    });
+    return bands;
+  }, [filteredSpine]);
+
+  const facts = {
+    years: expert?.year_of_experience ?? null,
+    positions: workExperience.length,
+    research: research.length,
+    quals: education.length,
+  };
 
   const handleDelete = () => {
     modal.confirm({
       title: (
-        <h3 className="font-semibold text-md text-[var(--theme-text-primary)]">
-          Are you sure you want to delete this expert?
+        <h3 className="font-semibold text-md" style={{ color: "var(--con-ink)" }}>
+          Delete {fullName}?
         </h3>
       ),
       content: (
-        <div className="text-md text-[var(--theme-text-secondary)] mt-2">
-          <p>
-            You are about to permanently delete{" "}
-            <span className="font-bold">{expertData.fullName}</span>. This
-            action cannot be undone.
-          </p>
-        </div>
+        <p style={{ color: "var(--con-ink-2)", marginTop: 8 }}>
+          This permanently removes their record. This cannot be undone.
+        </p>
       ),
-
-      okText: <span className="font-semibold">Delete</span>,
+      okText: "Delete",
       okType: "danger",
-      cancelText: <span className="font-semibold">Cancel</span>,
-      okButtonProps: {
-        className: "bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]",
-      },
-      cancelButtonProps: {
-        className: "hover:border-[var(--color-gray-500)]",
-      },
+      cancelText: "Cancel",
       async onOk() {
         setIsDeleting(true);
-        message.loading({ content: "Deleting expert...", key: "deleting" });
         try {
           await deleteExpert(expertId);
-          message.success({
-            content: "Expert deleted successfully!",
-            key: "deleting",
-            duration: 2,
-          });
+          message.success("Expert deleted.");
           navigate("/dashboard/all");
-        } catch (error) {
-          console.error("Deletion failed:", error);
-          message.error({
-            content: "Failed to delete expert.",
-            key: "deleting",
-            duration: 2,
-          });
+        } catch (err) {
+          message.error("Could not delete that expert.");
+          console.error(err);
         } finally {
           setIsDeleting(false);
         }
       },
-      onCancel() {
-        console.log("Deletion cancelled");
-      },
     });
+  };
+
+  const closeCvModal = () => {
+    if (uploadingCv) return;
+    setCvModalOpen(false);
+    setCvFile(null);
+  };
+
+  const handleCvUpload = async () => {
+    if (!cvFile) return;
+    setUploadingCv(true);
+    try {
+      const updated = await updateExpertCv(expertId, cvFile);
+      setExpert(updated);
+      message.success(expert?.cv_file ? "CV updated." : "CV uploaded.");
+      setCvModalOpen(false);
+      setCvFile(null);
+    } catch (err) {
+      const detail = err.response?.data?.cv_file?.[0] || err.response?.data?.detail;
+      message.error(detail || "Could not save that CV. Nothing was changed.");
+    } finally {
+      setUploadingCv(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center w-full h-screen">
-        <Spin size="large" tip="Loading Expert Profile..." />
+      <div className="con-dossier">
+        <div className="con-skeleton" style={{ height: 160 }} />
+        <div className="con-dossier-body">
+          <div className="con-dossier-left">
+            <div className="con-skeleton" style={{ height: 220 }} />
+            <div className="con-skeleton" style={{ height: 160 }} />
+          </div>
+          <div className="con-dossier-right">
+            <div className="con-skeleton" style={{ height: 420 }} />
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (error) {
-    return <div className="text-center text-[var(--theme-error)]">{error}</div>;
+  if (error || !expert) {
+    return (
+      <div className="con-dossier">
+        <div className="con-error">{error || "Expert not found."}</div>
+      </div>
+    );
   }
 
-  const SectionCard = ({ title, children }) => (
-    <div className="bg-[var(--theme-bg-primary)] rounded-lg shadow-sm overflow-hidden border border-[var(--theme-border-light)]">
-      <h3
-        className="text-sm font-semibold text-white p-3"
-        style={{ backgroundColor: "var(--color-primary)" }}
-      >
-        {title}
-      </h3>
-      <div className="p-4 md:p-6">{children}</div>
-    </div>
-  );
-
   return (
-    <div className="space-y-6">
-      <PageHeader title="Expert Profile" />
-      
-      {/* {expertData && (
-        <PDFDownloadLink
-          document={<MyDocument expert={expertData} />}
-          fileName="expert-profile.pdf"
-          style={{ textDecoration: "none" }}
-        >
-          {({ loading }) =>
-            loading ? (
-              <Button type="primary" icon={<DownloadOutlined />} loading>
-                Preparing PDF...
-              </Button>
-            ) : (
-              <div className="flex justify-end my-5">
-                <Space className="mt-4 sm:mt-0" wrap>
-                  <Button type="primary" icon={<DownloadOutlined />}>
-                    Download CV
-                  </Button>
-                  <Link to={`/dashboard/experts/edit/${expertData.id}`}>
-                    <Button type="primary" icon={<EditOutlined />}>
-                      Edit CV
-                    </Button>
-                  </Link>
-                  <Button
-                    type="primary"
-                    icon={<DeleteOutlined />}
-                    onClick={handleDelete}
-                    loading={isDeleting}
-                  >
-                    Delete CV
-                  </Button>
-                </Space>
+    <div className="con-dossier">
+      {/* ── Masthead ── */}
+      <div className="con-masthead">
+        <div className="con-mh-top">
+          <span className="con-mh-av">{initialsOf(expert.first_name, expert.last_name)}</span>
+          <div className="con-mh-id">
+            <h2>{fullName}</h2>
+            {(personal?.current_position || sectors[0]) && (
+              <div className="con-mh-role">
+                {[personal?.current_position, sectors[0]].filter(Boolean).join(" · ")}
               </div>
-            )
-          }
-        </PDFDownloadLink>
-      )} */}
+            )}
+            <div className="con-mh-meta">
+              {expert.code && <span className="con-code-chip">{expert.code}</span>}
+              {expert.nationality && <span>{expert.nationality}</span>}
+              {expert.country && (
+                <>
+                  <span className="sep">·</span>
+                  <span>{expert.country}</span>
+                </>
+              )}
+              {fmtDate(expert.created_at) && (
+                <>
+                  <span className="sep">·</span>
+                  <span>Registered {fmtDate(expert.created_at)}</span>
+                </>
+              )}
+            </div>
+          </div>
 
-      <div className="flex justify-end my-5">
-        <Space className="mt-4 sm:mt-0" wrap>
-          <a href={expertData.cv_file} download>
-            <Button
-              disabled={!(expertData.yours || role === "super_admin")}
-              type="primary"
-              icon={<DownloadOutlined />}
-            >
-              Download CV
-            </Button>
-          </a>
+          <div className="con-mh-acts">
+            {expert.cv_file && (canSeePrivate) && (
+              <a
+                className="con-btn con-btn-quiet"
+                href={expert.cv_file}
+                target="_blank"
+                rel="noreferrer"
+                download
+              >
+                <FiDownload size={14} />
+                Download CV
+              </a>
+            )}
+            {role === "company" && !expert.yours && !canSeePrivate && (
+              <>
+                {!accessRequest && (
+                  <button
+                    className="con-btn con-btn-quiet"
+                    onClick={handleRequestAccess}
+                    disabled={requestingAccess}
+                  >
+                    <FiUnlock size={14} />
+                    {requestingAccess ? "Sending…" : "Request CV & contact info"}
+                  </button>
+                )}
+                {accessRequest?.status === "pending" && (
+                  <span className="con-btn con-btn-quiet" style={{ cursor: "default" }}>
+                    <FiPending size={14} />
+                    Request pending review
+                  </span>
+                )}
+                {accessRequest?.status === "priced" && (
+                  <span
+                    className="con-btn con-btn-quiet"
+                    style={{ cursor: "default" }}
+                    title="An admin has set a price. Contact them to arrange payment."
+                  >
+                    <FiCreditCard size={14} />
+                    Awaiting payment · {accessRequest.price}
+                  </span>
+                )}
+                {accessRequest?.status === "rejected" && (
+                  <button
+                    className="con-btn con-btn-quiet"
+                    onClick={handleRequestAccess}
+                    disabled={requestingAccess}
+                    title={accessRequest.admin_note || "Previous request was declined."}
+                  >
+                    <FiUnlock size={14} />
+                    {requestingAccess ? "Sending…" : "Request again"}
+                  </button>
+                )}
+              </>
+            )}
+            {expert.yours && (
+              <button
+                className="con-btn con-btn-quiet"
+                onClick={() => setCvModalOpen(true)}
+              >
+                <FiUploadCloud size={14} />
+                {expert.cv_file ? "Update CV" : "Upload CV"}
+              </button>
+            )}
+            {expert.yours && (
+              <Link className="con-btn con-btn-quiet" to={`/dashboard/experts/edit/${expert.id}`}>
+                <FiEdit2 size={14} />
+                Edit
+              </Link>
+            )}
+            {expert.yours && (
+              <button
+                className="con-btn con-btn-ghost"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                aria-label="Delete expert"
+                title="Delete expert"
+              >
+                <FiTrash2 size={14} />
+              </button>
+            )}
+          </div>
+        </div>
 
-          {expertData.yours && (
-            <Link to={`/dashboard/experts/edit/${expertData.id}`}>
-              <Button type="primary" icon={<EditOutlined />}>
-                Edit CV
-              </Button>
-            </Link>
-          )}
-          {expertData.yours && (
-            <Button
-              type="primary"
-              icon={<DeleteOutlined />}
-              onClick={handleDelete}
-              loading={isDeleting}
-            >
-              Delete CV
-            </Button>
-          )}
-        </Space>
+        <div className="con-mh-facts">
+          <div className="con-fact">
+            <b className="con-num">{facts.years ?? "—"}</b>
+            <small>Years of experience</small>
+          </div>
+          <div className="con-fact">
+            <b className="con-num">{facts.positions}</b>
+            <small>Positions held</small>
+          </div>
+          <div className="con-fact">
+            <b className="con-num">{facts.research}</b>
+            <small>Research projects</small>
+          </div>
+          <div className="con-fact">
+            <b className="con-num">{facts.quals}</b>
+            <small>Qualifications</small>
+          </div>
+          <div className={`con-fact${staleMonths != null && staleMonths >= 12 ? " warn" : ""}`}>
+            <b className="con-num">{staleMonths != null ? `${staleMonths} mo` : "—"}</b>
+            <small>Since CV update</small>
+          </div>
+        </div>
       </div>
 
-      {/* <PDFViewer width="100%" height="600">
-        <MyDocument expert={expertData} />
-      </PDFViewer> */}
-      <div>
-        <div className="space-y-6">
-          <SectionCard title="Personal Information">
-            <Descriptions bordered column={1} size="small">
-              <Descriptions.Item label="Full Name">
-                {expertData.yours || role === "super_admin" ? (
-                  expertData.fullName
-                ) : (
-                  <>
-                    {" "}
-                    <Skeleton.Input
-                      active={true}
-                      size={"small"}
-                      style={{ width: 200 }}
-                      className="bg-[var(--theme-bg-tertiary)] "
-                    />
-                  </>
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="Gender">
-                {expertData.yours || role === "super_admin" ? (
-                  expertData.personal.gender
-                ) : (
-                  <>
-                    {" "}
-                    <Skeleton.Input
-                      active={true}
-                      size={"small"}
-                      style={{ width: 100 }}
-                      className="bg-[var(--theme-bg-tertiary)] "
-                    />
-                  </>
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="Nationality">
-                {expertData.yours || role === "super_admin" ? (
-                  expertData.nationality
-                ) : (
-                  <>
-                    {" "}
-                    <Skeleton.Input
-                      active={true}
-                      size={"small"}
-                      style={{ width: 150 }}
-                      className="bg-[var(--theme-bg-tertiary)] "
-                    />
-                  </>
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="Email">
-                {expertData.yours || role === "super_admin" ? (
-                  expertData.email
-                ) : (
-                  <>
-                    {" "}
-                    <Skeleton.Input
-                      active={true}
-                      size={"small"}
-                      style={{ width: 200 }}
-                      className="bg-[var(--theme-bg-tertiary)] "
-                    />
-                  </>
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="Phone Number">
-                {expertData.yours || role === "super_admin" ? (
-                  expertData.personal.phone_number || "N/A"
-                ) : (
-                  <>
-                    {" "}
-                    <Skeleton.Input
-                      active={true}
-                      size={"small"}
-                      style={{ width: 200 }}
-                      className="bg-[var(--theme-bg-tertiary)] "
-                    />
-                  </>
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="Current Position">
-                {expertData.personal.current_position || "N/A"}
-              </Descriptions.Item>
-              <Descriptions.Item label="CV Language">
-                {expertData.cv_language || "N/A"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Date of Birth">
-                {expertData.yours || role === "super_admin" ? (
-                  dayjs(expertData.personal.date_of_birth).format("DD/MM/YYYY")
-                ) : (
-                  <>
-                    {" "}
-                    <Skeleton.Input
-                      active={true}
-                      size={"small"}
-                      style={{ width: 200 }}
-                      className="bg-[var(--theme-bg-tertiary)] "
-                    />
-                  </>
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="Registered On">
-                {expertData.registeredOn}
-              </Descriptions.Item>
-              {/* <Descriptions.Item label="Language Skills">
-                  {expertData.personal.language_skills || "N/A"}
-                </Descriptions.Item> */}
-              {/* <Descriptions.Item label="Publications">
-                  {expertData.personal.publications || "N/A"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Journals">
-                  {expertData.personal.journals || "N/A"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Books">
-                  {expertData.personal.books || "N/A"}
-                </Descriptions.Item> */}
-            </Descriptions>
-          </SectionCard>
+      {/* ── Body ── */}
+      <div className="con-dossier-body">
+        {/* LEFT */}
+        <div className="con-dossier-left">
+          <div className="con-dcard">
+            <div className="con-dcard-h">
+              <h3>Contact &amp; identity</h3>
+            </div>
+            <div className="con-dcard-b">
+              <dl className="con-dkv">
+                <dt>Email</dt>
+                <dd>{canSeePrivate ? expert.email || "—" : <Locked />}</dd>
+                <dt>Phone</dt>
+                <dd>{canSeePrivate ? personal?.phone_number || "—" : <Locked />}</dd>
+                <dt>Gender</dt>
+                <dd>{personal?.gender || "—"}</dd>
+                <dt>Nationality</dt>
+                <dd>{expert.nationality || "—"}</dd>
+                <dt>Date of birth</dt>
+                <dd>
+                  {canSeePrivate ? fmtDate(personal?.date_of_birth) || "—" : <Locked />}
+                </dd>
+                <dt>CV language</dt>
+                <dd>{expert.cv_language || "—"}</dd>
+              </dl>
 
-          <SectionCard title="Specialization & Skills">
-            <div>
-              <h4 className="text-sm font-semibold text-[var(--theme-text-muted)] mb-2">
-                Skills
-              </h4>
-              <div className="mb-4">
-                {expertData.specialization ? (
-                  <Tag
-                    color="geekblue"
-                    style={{ fontSize: "14px", padding: "6px 12px" }}
-                  >
-                    {expertData.specialization}
-                  </Tag>
-                ) : (
-                  <Tag style={{ fontSize: "14px", padding: "4px 10px" }}>
-                    Not Specified
-                  </Tag>
-                )}
+              {!canSeePrivate && (
+                <div className="con-privacy-note">
+                  <FiLock size={14} />
+                  <p>
+                    <b>Contact details hidden</b>
+                    This expert was registered by another company. Their professional
+                    record is fully visible.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {(expertise?.specialization || sectors.length > 0) && (
+            <div className="con-dcard">
+              <div className="con-dcard-h">
+                <h3>Expertise</h3>
+                {sectors.length > 0 && <span className="n">{sectors.length}</span>}
               </div>
-              <h4 className="text-sm font-semibold text-[var(--theme-text-muted)] mb-1">
-                Primary Specialization
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {expertData?.skills && expertData.skills.length > 0 ? (
-                  expertData?.skills?.map((skill, index) => (
-                    <Tag color="blue" key={index}>
-                      {skill}
-                    </Tag>
-                  ))
-                ) : (
-                  <p className="text-[var(--theme-text-muted)]">No skills listed.</p>
+              <div className="con-dcard-b">
+                {expertise?.specialization && (
+                  <>
+                    <div className="con-eyebrow" style={{ marginBottom: 7 }}>
+                      Primary specialisation
+                    </div>
+                    <div className="con-dchips" style={{ marginBottom: 13 }}>
+                      <span className="con-dchip key">{expertise.specialization}</span>
+                    </div>
+                  </>
+                )}
+                {sectors.length > 0 && (
+                  <>
+                    <div className="con-eyebrow" style={{ marginBottom: 7 }}>
+                      Sectors
+                    </div>
+                    <div className="con-dchips">
+                      {sectors.map((s) => (
+                        <span className="con-dchip" key={s}>
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {expertise?.key_words?.length > 0 && (
+                  <>
+                    <div className="con-eyebrow" style={{ margin: "13px 0 7px" }}>
+                      Keywords
+                    </div>
+                    <div className="con-dchips">
+                      {expertise.key_words.map((k) => (
+                        <span className="con-dchip" key={k}>
+                          {k}
+                        </span>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
-          </SectionCard>
+          )}
+
+          {languages.length > 0 && (
+            <div className="con-dcard">
+              <div className="con-dcard-h">
+                <h3>Languages</h3>
+              </div>
+              <div className="con-dcard-b">
+                {languages.map((lang, i) => {
+                  const level = { 4: "Excellent", 3: "Very good", 2: "Average", 1: "Basic" };
+                  return (
+                    <div className="con-dlang" key={`${lang.language}-${i}`}>
+                      <span className="con-dlang-name">{lang.language}</span>
+                      <span className="con-dmeter">
+                        <i style={{ width: `${((lang.speaking || 0) / 4) * 100}%` }} />
+                      </span>
+                      <small>{level[lang.speaking] || "—"}</small>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {regions.length > 0 && (
+            <div className="con-dcard">
+              <div className="con-dcard-h">
+                <h3>Regions worked</h3>
+                <span className="n">{regions.length}</span>
+              </div>
+              <div className="con-dcard-b">
+                <div className="con-dchips">
+                  {regions.map((r) => (
+                    <span className="con-dchip" key={r}>
+                      {r}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="lg:col-span-2 space-y-6">
-          {expertData.work_experience &&
-            expertData.work_experience.length > 0 && (
-              <SectionCard title="Work Experience">
-                <Timeline>
-                  {expertData.work_experience.map((exp) => (
-                    <Timeline.Item key={exp.id}>
-                      <p className="font-semibold">
-                        {exp.position_title} at {exp.organization_name}
-                      </p>
-                      <p className="text-sm text-[var(--theme-text-muted)]">
-                        {dayjs(exp.start_date).format("MMM YYYY")} -{" "}
-                        {exp.end_date
-                          ? dayjs(exp.end_date).format("MMM YYYY")
-                          : "Present"}
-                      </p>
-                      {exp.responsibilities && (
-                        <p className="mt-1">{exp.responsibilities}</p>
-                      )}
-                    </Timeline.Item>
-                  ))}
-                </Timeline>
-              </SectionCard>
-            )}
-
-          {expertData.certifications &&
-            expertData.certifications.length > 0 && (
-              <SectionCard title="Certifications ">
-                <Timeline>
-                  {expertData.certifications.map((cert) => (
-                    <Timeline.Item key={cert.id}>
-                      <p className="font-semibold">{cert.position_title}</p>
-                      <p className="text-sm text-[var(--theme-text-muted)]">
-                        From: {cert.organization_name}
-                      </p>
-                      <p className="text-sm text-[var(--theme-text-muted)]">
-                        Issued: {dayjs(cert.start_date).format("MMM YYYY")}
-                      </p>
-                      {cert.responsibilities && (
-                        <p className="mt-1">{cert.responsibilities}</p>
-                      )}
-                    </Timeline.Item>
-                  ))}
-                </Timeline>
-              </SectionCard>
-            )}
-
-          <SectionCard title="Educational Background">
-            <Timeline>
-              {expertData.education.map((edu) => (
-                <Timeline.Item key={edu.id}>
-                  <p className="font-semibold">
-                    {edu.education_level} in {edu.field_of_study}
-                  </p>
-                  <p className="text-sm text-[var(--theme-text-muted)]">
-                    {edu.institution_name}
-                  </p>
-                  <p className="text-sm text-[var(--theme-text-muted)]">
-                    Graduated: {dayjs(edu.year_of_grad).format("YYYY")}
-                  </p>
-                </Timeline.Item>
-              ))}
-            </Timeline>
-          </SectionCard>
-
-          {expertData.research && expertData.research.length > 0 && (
-            <SectionCard title="Research Experience">
-              <Timeline>
-                {expertData.research.map((res) => (
-                  <Timeline.Item key={res.id}>
-                    <p className="font-semibold">
-                      {res.position} at {res.client}
-                    </p>
-                    <p className="text-sm text-[var(--theme-text-muted)]">
-                      {dayjs(res.start_date).format("MMM YYYY")} -{" "}
-                      {res.end_date
-                        ? dayjs(res.end_date).format("MMM YYYY")
-                        : "Ongoing"}
-                    </p>
-                    {res.description && (
-                      <p className="mt-1">{res.description}</p>
-                    )}
-                  </Timeline.Item>
+        {/* RIGHT */}
+        <div className="con-dossier-right">
+          <div className="con-dcard">
+            <div className="con-dcard-h" style={{ gap: 12 }}>
+              <h3>Career</h3>
+              <span className="con-dtabs">
+                {[
+                  ["all", "All"],
+                  ["work", "Work"],
+                  ["research", "Research"],
+                  ["education", "Education"],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    className={spineFilter === key ? "on" : ""}
+                    onClick={() => setSpineFilter(key)}
+                  >
+                    {label}
+                  </button>
                 ))}
-              </Timeline>
-            </SectionCard>
-          )}
+              </span>
+            </div>
 
-          {expertData.journals && (
-            <SectionCard title="Journals ">
-              <Timeline>
-                <Timeline.Item key={expertData.id}>
-                  <p className="text-sm text-[var(--theme-text-primary)]">{expertData.journals}</p>
-                </Timeline.Item>
-              </Timeline>
-            </SectionCard>
-          )}
+            {filteredSpine.length === 0 ? (
+              <div className="con-empty">Nothing recorded for this expert yet.</div>
+            ) : (
+              <div className="con-spine">
+                {spineBands.map((band) => (
+                  <div key={band.label}>
+                    <div className="con-yr">
+                      <b>{band.label}</b>
+                      <span className="rule" />
+                    </div>
+                    {band.events.map((event) => {
+                      const meta = EVENT_META[event.kind];
+                      const Icon = meta.icon;
+                      const kindClass =
+                        event.kind === "education"
+                          ? "edu"
+                          : event.kind === "certification"
+                          ? "cert"
+                          : event.kind === "research"
+                          ? "res"
+                          : "work";
+                      return (
+                        <div className="con-ev" key={event.key}>
+                          <span className={`con-ev-dot ${kindClass}`}>
+                            <Icon size={11} />
+                          </span>
+                          <div className="con-ev-b">
+                            <div className="con-ev-title">
+                              <b>{event.title}</b>
+                              <span className={`con-ev-kind ${kindClass}`}>{meta.label}</span>
+                            </div>
+                            {event.org && <div className="con-ev-org">{event.org}</div>}
+                            <div className="con-ev-when">
+                              {event.graduated
+                                ? `Graduated ${yearOf(event.start) ?? "—"}`
+                                : event.kind === "certification"
+                                ? fmtMonthYear(event.start) || "—"
+                                : `${fmtMonthYear(event.start) || "—"} – ${
+                                    event.ongoing ? "present" : fmtMonthYear(event.end) || "—"
+                                  }${event.country ? ` · ${event.country}` : ""}`}
+                            </div>
+                            {event.desc && <p className="con-ev-desc">{event.desc}</p>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {expertData.publications && (
-            <SectionCard title="Publications ">
-              <Timeline>
-                <Timeline.Item key={expertData.id}>
-                  <p className="text-sm text-[var(--theme-text-primary)]">
-                    {expertData.publications}
-                  </p>
-                </Timeline.Item>
-              </Timeline>
-            </SectionCard>
-          )}
-          {expertData.books && (
-            <SectionCard title="Books ">
-              <Timeline>
-                <Timeline.Item key={expertData.id}>
-                  <p className="text-sm text-[var(--theme-text-primary)]">{expertData.books}</p>
-                </Timeline.Item>
-              </Timeline>
-            </SectionCard>
+          {(expert.journals || expert.publications || expert.books) && (
+            <div className="con-dcard">
+              <div className="con-dcard-h">
+                <h3>Publications &amp; output</h3>
+              </div>
+              <div className="con-dcard-b" style={{ paddingTop: 4 }}>
+                {expert.journals && (
+                  <>
+                    <div className="con-eyebrow" style={{ margin: "10px 0 2px" }}>
+                      Journals
+                    </div>
+                    <div className="con-pub">{expert.journals}</div>
+                  </>
+                )}
+                {expert.publications && (
+                  <>
+                    <div className="con-eyebrow" style={{ margin: "14px 0 2px" }}>
+                      Publications
+                    </div>
+                    <div className="con-pub">{expert.publications}</div>
+                  </>
+                )}
+                {expert.books && (
+                  <>
+                    <div className="con-eyebrow" style={{ margin: "14px 0 2px" }}>
+                      Books
+                    </div>
+                    <div className="con-pub">{expert.books}</div>
+                  </>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
+
+      <Modal
+        title={expert.cv_file ? "Update CV" : "Upload CV"}
+        open={cvModalOpen}
+        onCancel={closeCvModal}
+        footer={null}
+        width={480}
+        destroyOnClose
+      >
+        <div className="con-cv-modal">
+          {expert.cv_file && (
+            <div className="con-cv-current">
+              <span className="con-cv-current-icon">
+                <FiFile size={15} />
+              </span>
+              <span className="con-cv-current-text">
+                <b>Current CV on file</b>
+                <small>Uploading a new file replaces this one.</small>
+              </span>
+              <a
+                className="con-textlink"
+                href={expert.cv_file}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View
+              </a>
+            </div>
+          )}
+
+          <Upload.Dragger
+            accept=".pdf,.docx"
+            maxCount={1}
+            fileList={
+              cvFile
+                ? [{ uid: "cv", name: cvFile.name, status: "done" }]
+                : []
+            }
+            beforeUpload={(file) => {
+              setCvFile(file);
+              return false;
+            }}
+            onRemove={() => setCvFile(null)}
+            className="con-cv-dragger"
+          >
+            <p className="con-cv-dragger-icon">
+              <FiUploadCloud size={22} />
+            </p>
+            <p className="con-cv-dragger-text">Click or drag a file to upload</p>
+            <p className="con-cv-dragger-hint">PDF, DOC, or DOCX · up to 5MB</p>
+          </Upload.Dragger>
+
+          <div className="con-cv-modal-actions">
+            <button className="con-btn con-btn-ghost" onClick={closeCvModal} disabled={uploadingCv}>
+              <FiX size={14} />
+              Cancel
+            </button>
+            <button
+              className="con-btn con-btn-primary"
+              onClick={handleCvUpload}
+              disabled={!cvFile || uploadingCv}
+            >
+              <FiUploadCloud size={14} />
+              {uploadingCv ? "Saving…" : expert.cv_file ? "Save new CV" : "Upload CV"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
-};
-
-export default ExpertProfilePage;
+}

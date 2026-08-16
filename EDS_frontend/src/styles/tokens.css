@@ -15,7 +15,7 @@
   /* ── Brand Neutral Colors (brand guideline compliant) ── */
   --color-dark:      #1A1A1A; /* AfriDATAi Black RGB(26, 26, 26) - exact brand match */
   --color-white:     #FFFFFF; /* AfriDATAi White RGB(255, 255, 255) */
-  
+
   /* ── Extended Gray Scale (for UI components) ── */
   --color-gray-900:  #0f0f0f; /* Ultra dark for deep contrast */
   --color-gray-850:  #171717; /* Slightly lighter than brand black */
@@ -57,7 +57,15 @@
   --shadow-red-lg: 0 12px 32px rgba(174, 39, 45, 0.2);
 
   /* ── Sidebar (theme-aware) ── */
-  --sidebar-bg: var(--color-primary-hover); /* Dark red in light mode */
+  --sidebar-bg: var(--color-dark); /* Brand black */
+  --sidebar-bg-deep: var(--color-dark);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active-bg: var(--color-primary);
+  --sidebar-active-text: #ffffff;
+  --sidebar-text: #f5f5f5;
+  --sidebar-text-muted: #b8b8b8;
+  --sidebar-text-faint: #888888;
 
   /* ── Theme System (Light Mode - Default) ── */
   --theme-bg-primary: var(--color-white);
@@ -92,11 +100,63 @@
   --chart-series-6:   #10B981;
   --chart-series-7:   #3B82F6;
   --chart-series-8:   #8B5CF6;
+
+  /* ── Console tokens (Light) ──
+     Neutrals for the admin console shell. Deliberately separate from the
+     --theme-* set so the console can be tuned without disturbing the rest
+     of the app. The ground matches --color-gray-50 so the console sits on
+     the same canvas as the older dashboard pages. */
+  --con-ground:      #f8fafc;
+  --con-surface:     #FFFFFF;
+  --con-surface-2:   #F4F1F0;
+  --con-line:        #E6E0DF;
+  --con-line-strong: #D3CBC9;
+  --con-ink:         #1C1719;
+  --con-ink-2:       #574E50;
+  --con-ink-3:       #8B8082;
+
+  --con-brand:       #AE272D;
+  --con-brand-deep:  #8E2024;
+  --con-brand-wash:  rgba(174, 39, 45, 0.08);
+
+  /* ── Interaction accent ──
+     Red is brand identity: the logo, the active nav stripe, the one
+     primary button. Everything merely *interactive* — selection, links,
+     checkboxes, match highlights, meters — uses this slate instead, so
+     red keeps its weight instead of covering the whole screen. */
+  --con-accent:       #3A5A78;
+  --con-accent-deep:  #2C4761;
+  --con-accent-wash:  rgba(58, 90, 120, 0.09);
+
+  /* Semantic state — kept separate from the brand accent */
+  --con-warn:        #B45309;
+  --con-warn-wash:   rgba(180, 83, 9, 0.10);
+  --con-good:        #0F766E;
+  --con-good-wash:   rgba(15, 118, 110, 0.10);
+
+  /* Rail stays dark in both themes */
+  --con-rail:            #171416;
+  --con-rail-line:       rgba(255, 255, 255, 0.08);
+  --con-rail-text:       #EDE8E7;
+  --con-rail-muted:      #8F8688;
+  --con-rail-hover:      rgba(255, 255, 255, 0.05);
+  --con-rail-badge:      rgba(255, 255, 255, 0.06);
+  --con-rail-collapse-hover: rgba(255, 255, 255, 0.2);
+
+  --con-shadow: 0 1px 2px rgba(28, 23, 25, 0.05), 0 8px 24px -12px rgba(28, 23, 25, 0.14);
 }
 
 /* ── Dark Mode Theme (for extended usage & eye strain reduction) ── */
 [data-theme="dark"] {
   --sidebar-bg: var(--color-dark); /* Black in dark mode */
+  --sidebar-bg-deep: var(--color-dark);
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-hover: rgba(255, 255, 255, 0.05);
+  --sidebar-active-bg: var(--color-primary);
+  --sidebar-active-text: #ffffff;
+  --sidebar-text: #f1f1f3;
+  --sidebar-text-muted: #a8adb8;
+  --sidebar-text-faint: #6b7280;
 
   --theme-bg-primary: var(--color-dark);     /* AfriDATAi Black background */
   --theme-bg-secondary: var(--color-gray-850); /* Slightly lighter for cards */
@@ -127,5 +187,33 @@
   --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.25);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 12px 40px rgba(0, 0, 0, 0.5);
-}
 
+  /* ── Console tokens (Dark) ──
+     Only the values change; every console rule reads the same names. */
+  --con-ground:      #121011;
+  --con-surface:     #1B1719;
+  --con-surface-2:   #241F21;
+  --con-line:        #302A2C;
+  --con-line-strong: #453D3F;
+  --con-ink:         #F5F1F0;
+  --con-ink-2:       #B5AAAC;
+  --con-ink-3:       #7E7375;
+
+  /* Brand red is lifted on the dark ground so it stays legible */
+  --con-brand:       #D9484E;
+  --con-brand-deep:  #AE272D;
+  --con-brand-wash:  rgba(217, 72, 78, 0.12);
+
+  --con-accent:      #7FA8CC;
+  --con-accent-deep: #9BBEDC;
+  --con-accent-wash: rgba(127, 168, 204, 0.14);
+
+  --con-warn:        #E0A75B;
+  --con-warn-wash:   rgba(224, 167, 91, 0.13);
+  --con-good:        #4FBFA8;
+  --con-good-wash:   rgba(79, 191, 168, 0.13);
+
+  --con-rail:        #0D0B0C;
+
+  --con-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.7);
+}

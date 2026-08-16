@@ -1,0 +1,213 @@
+/* ============================================================
+   auth.css — Login / auth screens
+   Centered single-card layout on a brand-textured backdrop.
+   ============================================================ */
+
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--theme-bg-primary);
+}
+
+.auth-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Brand-red glow texture, not a literal split panel */
+.auth-main::before,
+.auth-main::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.auth-main::before {
+  width: 560px;
+  height: 560px;
+  top: -220px;
+  left: 50%;
+  transform: translateX(-58%);
+  background: radial-gradient(circle, var(--color-primary-ultra-light) 0%, transparent 68%);
+}
+
+.auth-main::after {
+  width: 420px;
+  height: 420px;
+  bottom: -200px;
+  right: 8%;
+  background: radial-gradient(circle, var(--color-primary-ultra-light) 0%, transparent 70%);
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 408px;
+}
+
+.auth-mark {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.auth-mark img {
+  height: 40px;
+  width: auto;
+}
+
+.auth-panel {
+  background: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border-light);
+  border-radius: 20px;
+  padding: 40px 36px;
+  box-shadow: var(--shadow-lg);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.auth-heading {
+  margin-bottom: 28px;
+}
+
+.auth-eyebrow {
+  font-family: var(--font-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin: 0 0 8px;
+}
+
+.auth-title {
+  font-family: var(--font-primary);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--theme-text-primary);
+  margin: 0 0 6px;
+}
+
+.auth-subtitle {
+  font-family: var(--font-secondary);
+  font-size: 0.9rem;
+  color: var(--theme-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Field labels (used inside antd Form.Item label) ── */
+.auth-field-label {
+  font-family: var(--font-secondary);
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--theme-text-secondary);
+}
+
+/* antd input overrides scoped to auth screens only */
+.auth-panel .ant-input-affix-wrapper,
+.auth-panel .ant-input {
+  background: var(--theme-bg-secondary);
+  border-color: var(--theme-border-medium);
+  border-radius: 10px;
+}
+
+.auth-panel .ant-input-affix-wrapper:focus,
+.auth-panel .ant-input-affix-wrapper-focused,
+.auth-panel .ant-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-ultra-light);
+}
+
+.auth-forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -12px;
+  margin-bottom: 20px;
+}
+
+.auth-link {
+  font-family: var(--font-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+.auth-submit.ant-btn {
+  height: 48px;
+  border-radius: 10px;
+  font-family: var(--font-secondary);
+  font-weight: 700;
+  font-size: 0.92rem;
+  letter-spacing: 0.2px;
+  background: var(--color-primary);
+  border: none;
+  box-shadow: none;
+}
+
+.auth-submit.ant-btn:hover,
+.auth-submit.ant-btn:focus {
+  background: var(--color-primary-hover) !important;
+}
+
+.auth-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 24px;
+  width: 100%;
+  justify-content: center;
+  font-family: var(--font-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--theme-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.auth-back-link:hover {
+  color: var(--color-primary);
+}
+
+.auth-footnote {
+  text-align: center;
+  font-family: var(--font-secondary);
+  font-size: 0.78rem;
+  color: var(--theme-text-muted);
+  margin-top: 24px;
+}
+
+.auth-footnote a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.auth-footnote a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .auth-panel {
+    padding: 32px 24px;
+  }
+  .auth-title {
+    font-size: 1.4rem;
+  }
+}

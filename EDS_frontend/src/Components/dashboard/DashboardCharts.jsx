@@ -224,7 +224,7 @@ export function ExpertTrendsChart({ stats }) {
               variant={timePeriod === period ? "default" : "ghost"}
               size="sm"
               onClick={() => setTimePeriod(period)}
-              className={`w-18 capitalize bg-[var(--color-primary)]/90 hover:bg-[var(--color-primary)] shadow-sm ${
+              className={`w-18 capitalize bg-[var(--color-primary)]/90 hover:bg-[var(--color-primary)] text-white shadow-sm ${
                 timePeriod === period ? "ring-2 ring-[var(--color-primary)]" : ""
               }`}
               isActive={timePeriod === period}

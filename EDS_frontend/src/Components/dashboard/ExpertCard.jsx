@@ -10,7 +10,7 @@ const language_level = {
   2: "Average",
   1: "basic",
 };
-const ExpertCard = ({ expert, onDeleteSuccess, fetchExperts }) => {
+const ExpertCard = ({ expert, onDeleteSuccess, fetchExperts, forceOwnerActions = false }) => {
   console.log("expert: ", expert);
   const navigate = useNavigate();
   const { message, modal } = App.useApp();
@@ -61,7 +61,7 @@ const ExpertCard = ({ expert, onDeleteSuccess, fetchExperts }) => {
       okType: "danger",
       cancelText: <span className="font-semibold">Cancel</span>,
       okButtonProps: {
-        className: "bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]",
+        className: "bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] !text-white",
       },
       async onOk() {
         setIsDeleting(true);
@@ -105,7 +105,7 @@ const ExpertCard = ({ expert, onDeleteSuccess, fetchExperts }) => {
           <EyeOutlined style={{ fontSize: "18px" }} />
         </button>
 
-        {expert?.yours && (
+        {(expert?.yours || forceOwnerActions) && (
           <button
             onClick={handleEdit}
             className="p-2 text-[var(--theme-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] rounded-full transition-colors"
@@ -115,7 +115,7 @@ const ExpertCard = ({ expert, onDeleteSuccess, fetchExperts }) => {
           </button>
         )}
 
-        {expert?.yours && (
+        {(expert?.yours || forceOwnerActions) && (
           <button
             onClick={handleDelete}
             disabled={isDeleting}

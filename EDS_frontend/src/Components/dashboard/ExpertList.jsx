@@ -1,5 +1,5 @@
 import ExpertCard from "./ExpertCard";
-const ExpertList = ({ experts, onDeleteSuccess, fetchExperts }) => {
+const ExpertList = ({ experts, onDeleteSuccess, fetchExperts, forceOwnerActions = false }) => {
   if (!Array.isArray(experts)) {
     return <p className="text-center text-[var(--theme-text-muted)] mt-8">No experts found.</p>;
   }
@@ -16,6 +16,7 @@ const ExpertList = ({ experts, onDeleteSuccess, fetchExperts }) => {
           key={expert.id}
           expert={expert}
           onDeleteSuccess={onDeleteSuccess}
+          forceOwnerActions={forceOwnerActions}
         />
       ))}
     </div>

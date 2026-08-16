@@ -1,0 +1,187 @@
+/* ============================================================
+   sidebar.css — Dashboard sidebar navigation
+   ============================================================ */
+
+.custom-sidebar {
+  background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-deep) 100%);
+  border-right: 1px solid var(--sidebar-border);
+}
+
+/* ── Logo row ── */
+.sidebar-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--sidebar-text-muted);
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text);
+}
+
+/* ── Section label (small caps, above groups) ── */
+.sidebar-section-label {
+  font-family: var(--font-secondary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--sidebar-text-faint);
+  padding: 0 12px;
+  margin: 18px 0 6px;
+}
+
+/* ── Nav item ── */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-family: var(--font-secondary);
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--sidebar-text-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sidebar-link:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text);
+}
+
+.sidebar-link.active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  font-weight: 600;
+}
+
+.sidebar-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-right: 11px;
+}
+
+.sidebar-link-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-link-label.collapsed {
+  width: 0;
+  margin: 0;
+}
+
+/* ── Sub-menu ── */
+.sidebar-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 29px;
+  margin-top: 2px;
+}
+
+.sidebar-sublink {
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-family: var(--font-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--sidebar-text-faint);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-sublink:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text);
+}
+
+.sidebar-sublink.active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  font-weight: 600;
+}
+
+/* ── Popover sub-menu (collapsed state) ── */
+.sidebar-popover-sublink {
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-family: var(--font-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--theme-text-secondary);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-popover-sublink:hover {
+  background: var(--theme-bg-tertiary);
+}
+
+.sidebar-popover-sublink.active {
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── Group toggle button (Manage Database / Register) ── */
+.sidebar-group-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-family: var(--font-secondary);
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--sidebar-text-muted);
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-group-toggle:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text);
+}
+
+.sidebar-chevron {
+  font-size: 14px;
+  color: var(--sidebar-text-faint);
+  flex-shrink: 0;
+}
+
+.custom-sidebar nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Scoped popover theming ── */
+.custom-popover .ant-popover-inner {
+  background-color: var(--theme-bg-primary) !important;
+  border: 1px solid var(--theme-border-light);
+  padding: 6px !important;
+}
+.custom-popover .ant-popover-arrow-content {
+  background-color: var(--theme-bg-primary) !important;
+}
+.custom-popover .ant-popover-inner-content ul {
+  background-color: transparent !important;
+}
