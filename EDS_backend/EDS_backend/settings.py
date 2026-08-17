@@ -31,8 +31,17 @@ if not SECRET_KEY:
             "SECRET_KEY must be set in the environment when DEBUG is False."
         )
 
-_raw_hosts = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,159.223.188.205")
+_raw_hosts = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1")
 ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()]
+
+# Required for POST requests that carry Django's CSRF cookie (admin login,
+# password reset form) once served over HTTPS on a real domain — unlike
+# ALLOWED_HOSTS, Django does NOT derive this from ALLOWED_HOSTS automatically,
+# and it must include the scheme. Built from the same host list so there is
+# only one place to update when domains change.
+CSRF_TRUSTED_ORIGINS = [
+    f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")
+] + [f"http://{h}" for h in ("localhost", "127.0.0.1") if h in ALLOWED_HOSTS]
 
 # Application definition
 INSTALLED_APPS = [

@@ -1,0 +1,68 @@
+# Phase 2: added by deploy.sh only after certificates exist for both
+# domains. Two server blocks, each its own subdomain:
+#   eds.afridatai.com       -> React SPA (the `web` container, static files)
+#   api.eds.afridatai.com   -> Django (the `backend` container, port 8000)
+#
+# deploy.sh copies this file into conf.d/ as https.conf once
+# /etc/letsencrypt/live/eds.afridatai.com/fullchain.pem exists, then
+# reloads nginx. Domains are hardcoded (not templated) since this project
+# deploys to exactly these two hosts — see deploy.sh DOMAIN_FRONTEND /
+# DOMAIN_API if that ever needs to change.
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name eds.afridatai.com;
+
+    ssl_certificate     /etc/letsencrypt/live/eds.afridatai.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/eds.afridatai.com/privkey.pem;
+    # Inlined rather than including certbot's --nginx-plugin-generated
+    # options-ssl-nginx.conf / ssl-dhparam.pem, which only exist when certbot
+    # runs the nginx installer plugin. This project runs certbot standalone
+    # (certonly --webroot, in its own container) so those files are never
+    # created — these are Mozilla's "intermediate" baseline instead.
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    client_max_body_size 25m;
+
+    location / {
+        proxy_pass http://web:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name api.eds.afridatai.com;
+
+    ssl_certificate     /etc/letsencrypt/live/api.eds.afridatai.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.eds.afridatai.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    client_max_body_size 25m;
+
+    location / {
+        proxy_pass http://backend:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

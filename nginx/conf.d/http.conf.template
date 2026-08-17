@@ -1,0 +1,24 @@
+# Phase 1 (before certs exist) and always-on: ACME HTTP-01 challenge path,
+# plus redirect everything else to HTTPS once certs are issued.
+#
+# deploy.sh copies this to conf.d/default.conf verbatim on every run — it
+# never needs the domain substituted, so it is not actually a template past
+# its name (kept as .template for symmetry with https.conf.template and to
+# make clear it's managed by deploy.sh, not hand-edited in place).
+
+server {
+    listen 80;
+    server_name eds.afridatai.com api.eds.afridatai.com;
+
+    # Let's Encrypt HTTP-01 challenge — certbot writes proof files here.
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Everything else: redirect to HTTPS. Harmless before certs exist too —
+    # nothing hits this except health checks and stray bots until DNS/certs
+    # are live.
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
