@@ -1,7 +1,7 @@
 # Phase 2: added by deploy.sh only after certificates exist for both
 # domains. Two server blocks, each its own subdomain:
 #   eds.afridatai.com       -> React SPA (the `web` container, static files)
-#   api.eds.afridatai.com   -> Django (the `backend` container, port 8000)
+#   apieds.afridatai.com   -> Django (the `backend` container, port 8000)
 #
 # deploy.sh copies this file into conf.d/ as https.conf once
 # /etc/letsencrypt/live/eds.afridatai.com/fullchain.pem exists, then
@@ -45,10 +45,10 @@ server {
 server {
     listen 443 ssl;
     http2 on;
-    server_name api.eds.afridatai.com;
+    server_name apieds.afridatai.com;
 
-    ssl_certificate     /etc/letsencrypt/live/api.eds.afridatai.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.eds.afridatai.com/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/apieds.afridatai.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/apieds.afridatai.com/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers off;

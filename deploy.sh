@@ -4,7 +4,7 @@
 #
 # Serves:
 #   https://eds.afridatai.com       (frontend, via nginx -> web)
-#   https://api.eds.afridatai.com   (backend,  via nginx -> backend)
+#   https://apieds.afridatai.com   (backend,  via nginx -> backend)
 #
 # Both domains must already have DNS A records pointing at this host before
 # the first run — Let's Encrypt's HTTP-01 challenge needs that to work.
@@ -35,7 +35,7 @@ BRANCH="${GIT_BRANCH:-main}"
 REMOTE="${GIT_REMOTE:-origin}"
 
 DOMAIN_FRONTEND="eds.afridatai.com"
-DOMAIN_API="api.eds.afridatai.com"
+DOMAIN_API="apieds.afridatai.com"
 
 log() { printf '[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*"; }
 die() { log "ERROR: $*"; exit 1; }

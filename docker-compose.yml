@@ -34,7 +34,7 @@ services:
       db:
         condition: service_healthy
     # No published port — only reachable from other containers (nginx
-    # proxies api.eds.afridatai.com to backend:8000 internally).
+    # proxies apieds.afridatai.com to backend:8000 internally).
     expose:
       - "8000"
 

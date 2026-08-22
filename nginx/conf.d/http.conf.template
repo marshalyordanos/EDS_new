@@ -8,7 +8,7 @@
 
 server {
     listen 80;
-    server_name eds.afridatai.com api.eds.afridatai.com;
+    server_name eds.afridatai.com apieds.afridatai.com;
 
     # Let's Encrypt HTTP-01 challenge — certbot writes proof files here.
     location /.well-known/acme-challenge/ {
